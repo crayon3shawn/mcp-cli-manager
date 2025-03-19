@@ -1,43 +1,43 @@
 #!/bin/bash
 
-# 導入依賴
+# Import dependencies
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 
-# 啟動服務器
+# Start server
 start_server() {
     local server_name=$1
     
-    # 獲取服務器配置
+    # Get server configuration
     local server_config
     if ! server_config=$(get_server_config "$server_name"); then
         return 1
     fi
     
-    # 檢查服務器是否已在運行
+    # Check if server is already running
     if is_server_running "$server_name"; then
         log_warn "Server '$server_name' is already running"
         return 0
     fi
     
-    # 提取命令和參數
+    # Extract command and arguments
     local command
     local args
     command=$(echo "$server_config" | jq -r '.command')
     args=$(echo "$server_config" | jq -r '.args | join(" ")')
     
-    # 創建日誌目錄
+    # Create log directory
     local log_dir="/tmp/mcp/logs"
     mkdir -p "$log_dir"
     
-    # 啟動服務器
+    # Start server
     nohup $command $args > "$log_dir/$server_name.log" 2>&1 &
     local pid=$!
     
-    # 檢查是否成功啟動
+    # Check if started successfully
     if ps -p $pid > /dev/null; then
         log_success "Started server '$server_name' (PID: $pid)"
-        # 保存 PID
+        # Save PID
         echo $pid > "$log_dir/$server_name.pid"
         return 0
     else
@@ -48,12 +48,12 @@ start_server() {
     fi
 }
 
-# 停止服務器
+# Stop server
 stop_server() {
     local server_name=$1
     local pid_file="/tmp/mcp/logs/$server_name.pid"
     
-    # 檢查 PID 文件
+    # Check PID file
     if [ ! -f "$pid_file" ]; then
         log_error "Server '$server_name' is not running" \
                  "PID file not found" \
@@ -61,64 +61,64 @@ stop_server() {
         return 1
     fi
     
-    # 讀取 PID
+    # Read PID
     local pid
     pid=$(cat "$pid_file")
     
-    # 檢查進程是否存在
+    # Check if process exists
     if ! ps -p $pid > /dev/null; then
         log_warn "Server '$server_name' is not running (stale PID file)"
         rm -f "$pid_file"
         return 0
     fi
     
-    # 嘗試優雅停止
+    # Try graceful stop
     kill -TERM $pid
     
-    # 等待進程結束
+    # Wait for process to end
     local count=0
     while ps -p $pid > /dev/null && [ $count -lt 10 ]; do
         sleep 1
         count=$((count + 1))
     done
     
-    # 如果進程還在運行，強制結束
+    # If process is still running, force kill
     if ps -p $pid > /dev/null; then
         log_warn "Server '$server_name' not responding to SIGTERM, using SIGKILL"
         kill -9 $pid
     fi
     
-    # 刪除 PID 文件
+    # Remove PID file
     rm -f "$pid_file"
     log_success "Stopped server '$server_name'"
     return 0
 }
 
-# 檢查服務器狀態
+# Check server status
 is_server_running() {
     local server_name=$1
     local pid_file="/tmp/mcp/logs/$server_name.pid"
     
-    # 檢查 PID 文件
+    # Check PID file
     if [ ! -f "$pid_file" ]; then
         return 1
     fi
     
-    # 讀取 PID
+    # Read PID
     local pid
     pid=$(cat "$pid_file")
     
-    # 檢查進程是否存在
+    # Check if process exists
     if ps -p $pid > /dev/null; then
         return 0
     else
-        # 清理過期的 PID 文件
+        # Clean up stale PID file
         rm -f "$pid_file"
         return 1
     fi
 }
 
-# 獲取服務器狀態
+# Get server status
 get_server_status() {
     local server_name=$1
     
@@ -131,7 +131,7 @@ get_server_status() {
     fi
 }
 
-# 重啟服務器
+# Restart server
 restart_server() {
     local server_name=$1
     

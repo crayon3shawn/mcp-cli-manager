@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# 獲取腳本所在目錄
+# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$(dirname "$SCRIPT_DIR")/lib"
 
-# 導入模塊
+# Import modules
 source "$LIB_DIR/utils.sh"
 source "$LIB_DIR/config.sh"
 source "$LIB_DIR/process.sh"
 
-# 顯示使用幫助
+# Display help information
 show_help() {
     cat << EOF
 MCP (Model Context Protocol) CLI Manager
@@ -43,12 +43,12 @@ For more information, visit: https://github.com/yourusername/mcp-cli-manager
 EOF
 }
 
-# 顯示版本信息
+# Display version information
 show_version() {
     echo "MCP CLI Manager v0.1.0"
 }
 
-# 顯示日誌
+# Display logs
 show_logs() {
     local server_name=$1
     local log_file="/tmp/mcp/logs/$server_name.log"
@@ -60,7 +60,7 @@ show_logs() {
         return 1
     fi
     
-    # 使用 less 查看日誌，如果不存在則使用 cat
+    # Use less for viewing logs, fallback to cat if less is not available
     if command -v less &> /dev/null; then
         less +F "$log_file"
     else
@@ -68,7 +68,7 @@ show_logs() {
     fi
 }
 
-# 顯示狀態
+# Display status
 show_status() {
     local server_name=$1
     local config_file=${MCP_CONFIG_PATH:-servers.conf}
@@ -81,7 +81,7 @@ show_status() {
     fi
     
     if [ -z "$server_name" ]; then
-        # 顯示所有服務器狀態
+        # Show status for all servers
         log_info "Server Status:"
         jq -r '.[].name' "$config_file" | while read -r name; do
             local status
@@ -89,7 +89,7 @@ show_status() {
             echo "  $name: $status"
         done
     else
-        # 顯示指定服務器狀態
+        # Show status for specific server
         if ! get_server_config "$server_name" > /dev/null; then
             return 1
         fi
@@ -99,7 +99,7 @@ show_status() {
     fi
 }
 
-# 主命令處理
+# Main command handler
 case "$1" in
     "init")
         check_dependencies

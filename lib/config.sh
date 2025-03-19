@@ -1,18 +1,47 @@
 #!/bin/bash
 
-# 導入工具函數
+# Import utility functions
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
-# 配置文件路徑
+# Configuration file paths
 CLAUDE_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
 CURSOR_CONFIG=".cursor/mcp/config.json"
-DEFAULT_CONFIG="${MCP_CONFIG_PATH:-servers.conf}"
 
-# 檢查現有配置
+# Create new configuration
+create_config() {
+    local config_file=${1:-$MCP_CONFIG_PATH}
+    local config_dir=$(dirname "$config_file")
+    
+    # Create configuration directory
+    mkdir -p "$config_dir"
+    
+    # Create basic configuration
+    cat > "$config_file" << EOF
+{
+    "version": "1.0.0",
+    "mcpServers": {}
+}
+EOF
+    
+    log_success "Created new config file: $config_file"
+    return 0
+}
+
+# Check existing configurations
 check_existing_configs() {
     local found=0
     
-    # 檢查 Claude 配置
+    # Check default configuration
+    if [ -f "$MCP_CONFIG_PATH" ]; then
+        if validate_json "$MCP_CONFIG_PATH"; then
+            log_success "Found default config: $MCP_CONFIG_PATH"
+            found=1
+        else
+            log_warn "Invalid default config found: $MCP_CONFIG_PATH"
+        fi
+    fi
+    
+    # Check Claude configuration
     if [ -f "$CLAUDE_CONFIG" ]; then
         if validate_json "$CLAUDE_CONFIG"; then
             log_success "Found Claude config: $CLAUDE_CONFIG"
@@ -22,7 +51,7 @@ check_existing_configs() {
         fi
     fi
     
-    # 檢查 Cursor 配置
+    # Check Cursor configuration
     if [ -f "$CURSOR_CONFIG" ]; then
         if validate_json "$CURSOR_CONFIG"; then
             log_success "Found Cursor config: $CURSOR_CONFIG"
@@ -32,15 +61,21 @@ check_existing_configs() {
         fi
     fi
     
+    if [ $found -eq 0 ]; then
+        log_info "No existing configurations found"
+        log_info "Creating new config file..."
+        create_config
+    fi
+    
     return $found
 }
 
-# 導入配置
+# Import configuration
 import_config() {
     local source_file=$1
-    local target_file=${2:-$DEFAULT_CONFIG}
+    local target_file=${2:-$MCP_CONFIG_PATH}
     
-    # 檢查源文件
+    # Check source file
     if [ ! -f "$source_file" ]; then
         log_error "Config file not found" \
                  "File does not exist: $source_file" \
@@ -48,33 +83,44 @@ import_config() {
         return 1
     fi
     
-    # 驗證 JSON 格式
+    # Validate JSON format
     if ! validate_json "$source_file"; then
         return 1
     fi
     
-    # 轉換配置格式
-    if ! jq -r '.mcpServers | to_entries | map({
-        name: .key,
-        command: .value.command,
-        args: (.value.args // []),
-        description: (.value.description // "")
-    })' "$source_file" > "$target_file"; then
+    # Backup target file
+    if [ -f "$target_file" ]; then
+        backup_file "$target_file"
+    fi
+    
+    # Convert and save configuration
+    local temp_file=$(mktemp)
+    if ! jq '{
+        version: "1.0.0",
+        mcpServers: (.mcpServers | map_values({
+            command: .command,
+            args: (.args // []),
+            description: (.description // "")
+        }))
+    }' "$source_file" > "$temp_file"; then
         log_error "Failed to convert config" \
                  "Error while processing JSON" \
                  "Check if the source file has the correct structure"
+        rm -f "$temp_file"
         return 1
     fi
     
+    # Move to target location
+    mv "$temp_file" "$target_file"
     log_success "Configuration imported successfully to $target_file"
     return 0
 }
 
-# 列出服務器
+# List servers
 list_servers() {
-    local config_file=${1:-$DEFAULT_CONFIG}
+    local config_file=${1:-$MCP_CONFIG_PATH}
     
-    # 檢查配置文件
+    # Check configuration file
     if [ ! -f "$config_file" ]; then
         log_error "No configuration file found" \
                  "File does not exist: $config_file" \
@@ -82,24 +128,29 @@ list_servers() {
         return 1
     fi
     
-    # 驗證 JSON 格式
+    # Validate JSON format
     if ! validate_json "$config_file"; then
         return 1
     fi
     
-    # 顯示配置的服務器
+    # Display configuration information
+    local version
+    version=$(jq -r '.version' "$config_file")
+    log_info "Configuration version: $version"
+    
+    # Display server list
     log_info "Configured servers:"
-    jq -r '.[] | "\(.name):\n  Command: \(.command)\n  Args: \(.args | join(" "))\n  Description: \(.description)\n"' "$config_file"
+    jq -r '.mcpServers | to_entries[] | "  \(.key):\n    Command: \(.value.command)\n    Args: \(.value.args | join(" "))\n    Description: \(.value.description)\n"' "$config_file"
     
     return 0
 }
 
-# 獲取服務器配置
+# Get server configuration
 get_server_config() {
     local server_name=$1
-    local config_file=${2:-$DEFAULT_CONFIG}
+    local config_file=${2:-$MCP_CONFIG_PATH}
     
-    # 檢查參數
+    # Check parameters
     if [ -z "$server_name" ]; then
         log_error "No server name provided" \
                  "Server name is required" \
@@ -107,7 +158,7 @@ get_server_config() {
         return 1
     fi
     
-    # 檢查配置文件
+    # Check configuration file
     if [ ! -f "$config_file" ]; then
         log_error "Configuration file not found" \
                  "File does not exist: $config_file" \
@@ -115,11 +166,11 @@ get_server_config() {
         return 1
     fi
     
-    # 獲取服務器配置
+    # Get server configuration
     local server_config
-    server_config=$(jq -r ".[] | select(.name == \"$server_name\")" "$config_file")
+    server_config=$(jq -r ".mcpServers[\"$server_name\"]" "$config_file")
     
-    if [ -z "$server_config" ]; then
+    if [ "$server_config" = "null" ]; then
         log_error "Server not found" \
                  "No configuration found for server: $server_name" \
                  "Check server name or list available servers with 'mcp list'"

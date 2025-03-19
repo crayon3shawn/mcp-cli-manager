@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "test-server": {
+      "command": "python3",
+      "args": ["-m", "http.server", "8000"],
+      "description": "Simple HTTP server for testing"
+    },
+    "echo-server": {
+      "command": "nc",
+      "args": ["-l", "8001"],
+      "description": "Simple echo server for testing"
+    },
+    "node-server": {
+      "command": "node",
+      "args": ["-e", "console.log('Server started'); setInterval(() => {}, 1000)"],
+      "description": "Simple Node.js process for testing"
+    }
+  }
+} 
