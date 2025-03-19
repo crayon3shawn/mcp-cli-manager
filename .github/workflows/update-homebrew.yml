@@ -1,0 +1,41 @@
+name: Update Homebrew Tap
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-homebrew:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mcp-cli-manager
+        uses: actions/checkout@v3
+        with:
+          repository: crayon3shawn/mcp-cli-manager
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v3
+        with:
+          repository: crayon3shawn/homebrew-tap
+          path: homebrew-tap
+          token: ${{ secrets.TAP_PAT }}
+
+      - name: Update Formula
+        run: |
+          cd homebrew-tap/Formula
+          VERSION=${{ github.event.release.tag_name }}
+          URL="https://github.com/crayon3shawn/mcp-cli-manager/archive/refs/tags/${VERSION}.tar.gz"
+          SHA256=$(curl -sL $URL | shasum -a 256 | cut -d' ' -f1)
+          
+          sed -i '' "s|url \".*\"|url \"$URL\"|" mcp-cli-manager.rb
+          sed -i '' "s|sha256 \".*\"|sha256 \"$SHA256\"|" mcp-cli-manager.rb
+
+      - name: Commit and push changes
+        run: |
+          cd homebrew-tap
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add Formula/mcp-cli-manager.rb
+          git commit -m "Update mcp-cli-manager to ${VERSION}"
+          git push 
