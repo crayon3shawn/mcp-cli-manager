@@ -1,35 +1,36 @@
 #!/bin/bash
 #
-# MCP 環境變量管理模塊
-# 負責設置和管理 MCP CLI Manager 的環境變量、目錄結構和配置。
+# Environment variables management module for MCP CLI Manager
+# Responsible for setting up and managing environment variables,
+# directory structures, and configurations.
 #
-# 依賴:
+# Dependencies:
 #   - bash >= 4.0
 #   - mkdir
 #   - rm
 #   - env
 #
-# 用法:
+# Usage:
 #   source ./env.sh
-#   或
+#   or
 #   ./env.sh {init|validate|info|clean|export}
 
 set -euo pipefail
 IFS=$'\n\t'
 
-# 獲取腳本目錄
+# Get script directory
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
-# 基礎目錄配置
+# Base directories configuration
 if [ -n "${MCP_TEST:-}" ]; then
-    # 測試環境
+    # Test environment
     export MCP_CONFIG_DIR="${MCP_CONFIG_DIR:-$PROJECT_ROOT/test/fixtures}"
     export MCP_LOG_DIR="${MCP_LOG_DIR:-$PROJECT_ROOT/test/logs}"
     export MCP_RUNTIME_DIR="${MCP_RUNTIME_DIR:-$PROJECT_ROOT/test/run}"
     export MCP_ENV="test"
 else
-    # 生產環境
+    # Production environment
     export MCP_HOME="${MCP_HOME:-$HOME/.mcp}"
     export MCP_CONFIG_DIR="${MCP_CONFIG_DIR:-$MCP_HOME/config}"
     export MCP_LOG_DIR="${MCP_LOG_DIR:-$MCP_HOME/logs}"
@@ -38,17 +39,17 @@ else
     export MCP_ENV="${MCP_ENV:-production}"
 fi
 
-# 應用配置
+# Application configuration
 export MCP_LOG_LEVEL="${MCP_LOG_LEVEL:-1}"
 export MCP_LOG_MAX_SIZE="${MCP_LOG_MAX_SIZE:-10M}"
 export MCP_LOG_KEEP_DAYS="${MCP_LOG_KEEP_DAYS:-7}"
 
-# 運行時配置
+# Runtime configuration
 export MCP_PID_DIR="${MCP_PID_DIR:-$MCP_RUNTIME_DIR/pid}"
 export MCP_SOCKET_DIR="${MCP_SOCKET_DIR:-$MCP_RUNTIME_DIR/sockets}"
 
 #######################################
-# 驗證必要的環境變量是否已設置
+# Validates if required environment variables are set
 # Globals:
 #   MCP_CONFIG_DIR
 #   MCP_LOG_DIR
@@ -57,8 +58,8 @@ export MCP_SOCKET_DIR="${MCP_SOCKET_DIR:-$MCP_RUNTIME_DIR/sockets}"
 # Arguments:
 #   None
 # Returns:
-#   0 如果所有必要變量都已設置
-#   1 如果有任何變量未設置
+#   0 if all required variables are set
+#   1 if any variable is missing
 #######################################
 validate_env() {
     local required_vars=(
@@ -71,7 +72,7 @@ validate_env() {
     local missing=0
     for var in "${required_vars[@]}"; do
         if [ -z "${!var:-}" ]; then
-            echo "錯誤：缺少必要的環境變量：$var" >&2
+            echo "ERROR: Missing required environment variable: $var" >&2
             missing=1
         fi
     done
@@ -80,7 +81,7 @@ validate_env() {
 }
 
 #######################################
-# 初始化環境，創建必要的目錄結構
+# Initializes environment by creating necessary directory structure
 # Globals:
 #   MCP_CONFIG_DIR
 #   MCP_LOG_DIR
@@ -102,7 +103,7 @@ init_env() {
         "$MCP_RUNTIME_DIR"
     )
 
-    # 添加生產環境特有的目錄
+    # Add production-only directories
     if [ "$MCP_ENV" != "test" ]; then
         dirs+=(
             "$MCP_HOME"
@@ -112,28 +113,28 @@ init_env() {
         )
     fi
 
-    # 創建必要的目錄
+    # Create required directories
     for dir in "${dirs[@]}"; do
         if [ ! -d "$dir" ]; then
             mkdir -p "$dir"
-            echo "已創建目錄：$dir"
+            echo "Created directory: $dir"
         fi
     done
 
-    # 加載環境特定配置
+    # Load environment specific configuration
     local env_file="$MCP_CONFIG_DIR/.env.$MCP_ENV"
     if [ -f "$env_file" ]; then
-        echo "加載環境配置：$env_file"
+        echo "Loading environment configuration: $env_file"
         # shellcheck source=/dev/null
         source "$env_file"
     fi
 
-    # 驗證環境
+    # Validate environment
     validate_env
 }
 
 #######################################
-# 獲取環境信息
+# Gets environment information
 # Globals:
 #   MCP_ENV
 #   MCP_CONFIG_DIR
@@ -147,29 +148,29 @@ init_env() {
 # Returns:
 #   None
 # Output:
-#   將環境信息打印到標準輸出
+#   Prints environment information to stdout
 #######################################
 get_env_info() {
     cat << EOF
-MCP 環境信息：
+MCP Environment Information:
 ==========================
-環境：$MCP_ENV
-配置目錄：$MCP_CONFIG_DIR
-日誌目錄：$MCP_LOG_DIR
-運行時目錄：$MCP_RUNTIME_DIR
-日誌級別：$MCP_LOG_LEVEL
+Environment: $MCP_ENV
+Config Directory: $MCP_CONFIG_DIR
+Log Directory: $MCP_LOG_DIR
+Runtime Directory: $MCP_RUNTIME_DIR
+Log Level: $MCP_LOG_LEVEL
 EOF
 
     if [ "$MCP_ENV" != "test" ]; then
         cat << EOF
-主目錄：$MCP_HOME
-備份目錄：$MCP_BACKUP_DIR
+Home Directory: $MCP_HOME
+Backup Directory: $MCP_BACKUP_DIR
 EOF
     fi
 }
 
 #######################################
-# 清理環境（用於測試）
+# Cleans environment (useful for testing)
 # Globals:
 #   MCP_RUNTIME_DIR
 #   MCP_LOG_DIR
@@ -187,32 +188,32 @@ clean_env() {
     for dir in "${dirs[@]}"; do
         if [ -d "$dir" ]; then
             rm -rf "$dir"
-            echo "已清理目錄：$dir"
+            echo "Cleaned directory: $dir"
         fi
     done
 }
 
 #######################################
-# 導出環境變量到文件
+# Exports environment variables to a file
 # Globals:
 #   MCP_CONFIG_DIR
 # Arguments:
-#   $1 - 輸出文件路徑（可選）
+#   $1 - Output file path (optional)
 # Returns:
 #   None
 #######################################
 export_env() {
     local output_file=${1:-"$MCP_CONFIG_DIR/.env"}
     
-    # 如果目錄不存在則創建
+    # Create directory if it doesn't exist
     mkdir -p "$(dirname "$output_file")"
     
-    # 導出所有 MCP_ 開頭的變量
+    # Export all MCP_ prefixed variables
     env | grep '^MCP_' > "$output_file"
-    echo "已導出環境變量到：$output_file"
+    echo "Exported environment variables to: $output_file"
 }
 
-# 主程序
+# Main program
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     case "${1:-}" in
         "init")
@@ -231,7 +232,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
             export_env "${2:-}"
             ;;
         *)
-            echo "用法：${0} {init|validate|info|clean|export}" >&2
+            echo "Usage: ${0} {init|validate|info|clean|export}" >&2
             exit 1
             ;;
     esac
