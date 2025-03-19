@@ -1,0 +1,171 @@
+#!/bin/bash
+
+# 獲取腳本所在目錄
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(dirname "$SCRIPT_DIR")/lib"
+
+# 導入模塊
+source "$LIB_DIR/utils.sh"
+source "$LIB_DIR/config.sh"
+source "$LIB_DIR/process.sh"
+
+# 顯示使用幫助
+show_help() {
+    cat << EOF
+MCP (Model Context Protocol) CLI Manager
+
+Usage: mcp <command> [options]
+
+Commands:
+  init                     Initialize MCP configuration
+  import <file>           Import configuration from file
+  list                    List all configured servers
+  start <server>          Start a server
+  stop <server>           Stop a server
+  restart <server>        Restart a server
+  status [server]         Show server status (all if no server specified)
+  logs <server>           Show server logs
+  version                 Show version information
+  help                    Show this help message
+
+Options:
+  -c, --config <file>     Use specific config file
+  -v, --verbose           Show verbose output
+  -h, --help             Show this help message
+
+Examples:
+  mcp init                # Initialize configuration
+  mcp import config.json  # Import configuration
+  mcp start dev          # Start development server
+  mcp status             # Show all servers status
+
+For more information, visit: https://github.com/yourusername/mcp-cli-manager
+EOF
+}
+
+# 顯示版本信息
+show_version() {
+    echo "MCP CLI Manager v0.1.0"
+}
+
+# 顯示日誌
+show_logs() {
+    local server_name=$1
+    local log_file="/tmp/mcp/logs/$server_name.log"
+    
+    if [ ! -f "$log_file" ]; then
+        log_error "No logs found for server '$server_name'" \
+                 "Log file does not exist" \
+                 "Start the server first"
+        return 1
+    fi
+    
+    # 使用 less 查看日誌，如果不存在則使用 cat
+    if command -v less &> /dev/null; then
+        less +F "$log_file"
+    else
+        cat "$log_file"
+    fi
+}
+
+# 顯示狀態
+show_status() {
+    local server_name=$1
+    local config_file=${MCP_CONFIG_PATH:-servers.conf}
+    
+    if [ ! -f "$config_file" ]; then
+        log_error "No configuration file found" \
+                 "File does not exist: $config_file" \
+                 "Run 'mcp init' or 'mcp import' first"
+        return 1
+    fi
+    
+    if [ -z "$server_name" ]; then
+        # 顯示所有服務器狀態
+        log_info "Server Status:"
+        jq -r '.[].name' "$config_file" | while read -r name; do
+            local status
+            status=$(get_server_status "$name")
+            echo "  $name: $status"
+        done
+    else
+        # 顯示指定服務器狀態
+        if ! get_server_config "$server_name" > /dev/null; then
+            return 1
+        fi
+        local status
+        status=$(get_server_status "$server_name")
+        log_info "Server '$server_name' is $status"
+    fi
+}
+
+# 主命令處理
+case "$1" in
+    "init")
+        check_dependencies
+        check_existing_configs
+        ;;
+    "import")
+        if [ -z "$2" ]; then
+            log_error "No file specified" \
+                     "Import command requires a file path" \
+                     "Usage: mcp import <file>"
+            exit 1
+        fi
+        import_config "$2"
+        ;;
+    "list")
+        list_servers
+        ;;
+    "start")
+        if [ -z "$2" ]; then
+            log_error "No server specified" \
+                     "Start command requires a server name" \
+                     "Usage: mcp start <server>"
+            exit 1
+        fi
+        start_server "$2"
+        ;;
+    "stop")
+        if [ -z "$2" ]; then
+            log_error "No server specified" \
+                     "Stop command requires a server name" \
+                     "Usage: mcp stop <server>"
+            exit 1
+        fi
+        stop_server "$2"
+        ;;
+    "restart")
+        if [ -z "$2" ]; then
+            log_error "No server specified" \
+                     "Restart command requires a server name" \
+                     "Usage: mcp restart <server>"
+            exit 1
+        fi
+        restart_server "$2"
+        ;;
+    "status")
+        show_status "$2"
+        ;;
+    "logs")
+        if [ -z "$2" ]; then
+            log_error "No server specified" \
+                     "Logs command requires a server name" \
+                     "Usage: mcp logs <server>"
+            exit 1
+        fi
+        show_logs "$2"
+        ;;
+    "version")
+        show_version
+        ;;
+    "help"|"-h"|"--help")
+        show_help
+        ;;
+    *)
+        log_error "Unknown command: $1" \
+                 "Command not recognized" \
+                 "Run 'mcp help' for usage information"
+        exit 1
+        ;;
+esac 

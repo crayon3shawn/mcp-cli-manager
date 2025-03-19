@@ -1,164 +1,174 @@
 # MCP CLI 管理工具產品需求文件 (PRD)
 
-## 1. 產品概述
+## 1. 產品概述與目標
 
-MCP CLI 管理工具是一個命令行工具，用於管理 Model Context Protocol (MCP) 服務器和環境。該工具旨在簡化 MCP 相關服務的啟動、停止、監控和管理過程，提高開發和使用效率。
+### 1.1 產品定位
+MCP CLI 管理工具是一個命令行工具，用於管理 Model Context Protocol (MCP) 服務器和環境。
 
-## 2. 目標用戶
+### 1.2 核心目標
+- 簡化 MCP 服務的管理流程
+- 提供統一的命令行界面
+- 確保跨平台兼容性（macOS/Linux）
 
+### 1.3 目標用戶
 - AI 開發者和研究人員
-- 使用 MCP 進行開發的工程師
-- 需要管理多個 MCP 服務的系統管理員
+- MCP 開發工程師
+- 系統管理員
 
-## 3. 用戶需求
+## 2. 開發規範
 
-### 3.1 核心需求
+### 2.1 技術棧
+- Shell：zsh
+- 依賴工具：
+  - jq（JSON 處理）
+  - fnm（Node.js 版本管理）
 
-- 能夠啟動、停止和重啟 MCP 服務器
-- 查看所有 MCP 服務器的狀態
-- 管理 Node.js 環境，特別是 MCP 專用環境
-- 安裝和更新 MCP 依賴項
-- 診斷環境問題
-
-### 3.2 次要需求
-
-- 查看服務器日誌
-- 重新載入配置
-- 顯示版本信息
-
-## 4. 功能規格
-
-### 4.1 命令結構
-
-```
-mcp <命令> [參數]
-```
-
-### 4.2 命令列表
-
-| 命令 | 描述 | 參數 |
-|------|------|------|
-| help | 顯示幫助信息 | 無 |
-| status | 顯示所有服務器狀態 | 無 |
-| start | 啟動服務器 | [server]：指定服務器，不指定則啟動所有 |
-| stop | 停止服務器 | [server]：指定服務器，不指定則停止所有 |
-| restart | 重啟服務器 | [server]：指定服務器，不指定則重啟所有 |
-| logs | 查看服務器日誌 | [server]：指定服務器 |
-| doctor | 診斷環境問題 | 無 |
-| reload | 重新載入配置 | 無 |
-| version | 顯示版本信息 | 無 |
-| install | 安裝 MCP 依賴 | 無 |
-| update | 更新 MCP 依賴 | 無 |
-
-### 4.3 服務器類型
-
-- github：GitHub 整合服務器
-- filesystem：文件系統服務器
-- puppeteer：Puppeteer 自動化服務器
-- sequential：順序思維服務器
-
-## 5. 技術規格
-
-### 5.1 開發環境
-
-- 使用 zsh 作為主要 shell
-- 使用 fnm 管理 Node.js 版本
-- 使用 jq 處理 JSON 數據
-
-### 5.2 配置文件
-
-- `servers.conf`：服務器配置文件
-- `mcp-servers-versions.json`：版本和依賴配置文件
-
-### 5.3 目錄結構
-
+### 2.2 目錄結構
 ```
 mcp-cli-manager/
 ├── bin/                # 可執行文件
-│   └── mcp             # 主要命令行工具
+├── lib/                # 核心邏輯
 ├── conf/               # 配置文件
-│   ├── servers.conf    # 服務器配置
-│   └── mcp-servers-versions.json  # 版本配置
 ├── docs/               # 文檔
-├── scripts/            # 輔助腳本
-├── install.sh          # 安裝腳本
-├── README.md           # 說明文檔
-└── PRD.md              # 本產品需求文檔
+├── test/               # 測試文件
+└── examples/           # 示例
 ```
 
-## 6. 用戶界面
+### 2.3 開發原則
+1. **代碼規範**
+   - 註釋語言：英文
+   - 文檔語言：中文（開發文檔）、英文（用戶文檔）
+   - 錯誤信息：英文
 
-### 6.1 命令行輸出
+2. **配置管理**
+   - 使用 .env 管理敏感信息
+   - JSON 格式存儲配置
+   - 支持多環境配置
 
-- 使用純文本輸出，不依賴終端顏色支持
-- 使用英文作為主要語言，確保跨平台兼容性
-- 使用表情符號增強可讀性（✅, ❌, 🔍 等）
+## 3. 功能規格（按優先級排序）
 
-### 6.2 示例輸出
+### 3.1 第一階段：核心功能（必須）
+- [ ] 服務器生命週期管理
+  - 啟動/停止/重啟
+  - 狀態檢查
+  - PID 管理
+- [ ] 配置文件管理
+  - 讀取/寫入
+  - 格式驗證
+  - 導入/導出
 
-```
-$ mcp status
-🔍 Checking all server statuses...
-✅ GitHub Integration Server is running
-❌ File System Server is not running
-✅ Puppeteer Automation Server is running
-✅ Sequential Thinking Server is running
-📊 Summary: 3/4 servers running
-```
+### 3.2 第二階段：增強功能
+- [ ] 環境管理
+  - Node.js 版本控制
+  - 依賴項管理
+- [ ] 日誌系統
+  - 日誌記錄
+  - 日誌輪轉
+  - 錯誤追蹤
 
-## 7. 安裝和配置
+### 3.3 第三階段：高級功能
+- [ ] 監控系統
+  - 性能監控
+  - 資源使用
+  - 告警機制
+- [ ] 自動化
+  - 自動重啟
+  - 配置同步
+  - 版本更新
 
-### 7.1 安裝步驟
+## 4. 技術實現
 
-1. 克隆倉庫
-2. 運行安裝腳本
-3. 配置 MCP 環境
+### 4.1 核心模塊
+1. **進程管理 (process.sh)**
+   ```bash
+   - start_server()    # 啟動服務器
+   - stop_server()     # 停止服務器
+   - restart_server()  # 重啟服務器
+   - check_status()    # 檢查狀態
+   ```
 
-### 7.2 環境要求
+2. **工具函數 (utils.sh)**
+   ```bash
+   - log_message()     # 日誌記錄
+   - load_env()        # 環境變量
+   - validate_config() # 配置驗證
+   ```
 
-- zsh shell
-- fnm (Fast Node Manager)
-- jq (JSON 處理工具)
-- Node.js
+### 4.2 配置文件
+1. **.env 文件**
+   ```bash
+   # API Keys（敏感信息）
+   MCP_GITHUB_TOKEN=xxx
+   MCP_OPENAI_KEY=xxx
+   
+   # 環境設置
+   MCP_LOG_LEVEL=info
+   MCP_CONFIG_PATH=/etc/mcp/config.json
+   ```
 
-## 8. 兼容性和限制
+2. **配置文件 (config.json)**
+   ```json
+   {
+     "servers": {
+       "dev": {
+         "command": "node",
+         "args": ["server.js"],
+         "description": "Development server"
+       }
+     }
+   }
+   ```
 
-- 主要支持 macOS 和 Linux 系統
-- 在 Cursor 或其他 AI 集成的 IDE 中可能有部分功能限制
-- 已在 Claude、GPT 和 Anthropic Claude 模型上測試
+### 4.3 命令行界面規範
+1. **輸出格式**
+   ```bash
+   [OK] 成功信息
+   [ERROR] 錯誤信息
+   [WARN] 警告信息
+   [INFO] 一般信息
+   ```
 
-## 9. 未來擴展
+2. **錯誤處理**
+   ```bash
+   [ERROR] Configuration Error
+   Reason: Unable to read config file
+   Solution: Check file permissions
+   ```
 
-- 添加 Web 界面進行可視化管理
-- 支持更多類型的 MCP 服務器
-- 添加性能監控功能
-- 支持集群部署和管理
+## 5. 測試策略
 
-## 10. 開發時間線
+### 5.1 測試範圍
+1. **單元測試**
+   - 配置管理
+   - 進程控制
+   - 工具函數
 
-- 第一階段：核心功能開發（啟動、停止、狀態檢查）
-- 第二階段：環境管理和診斷功能
-- 第三階段：日誌和版本管理
-- 第四階段：測試和文檔完善
+2. **集成測試**
+   - 完整工作流
+   - 錯誤處理
+   - 性能測試
 
-## 開發原則
+### 5.2 測試工具
+- shunit2/bats：單元測試
+- GitHub Actions：CI/CD
 
-### 1. 語言使用
-- 代碼註釋、提交信息：英文
-- 文檔：
-  - 用戶文檔（README.md 等）：英文
-  - 開發文檔（PRD.md 等）：中文
-  - 錯誤信息：英文
+## 6. 發布計劃
 
-### 2. 功能開發順序
-1. 基礎配置管理
-   - 配置文件讀寫
-   - 配置導入導出
-   - 配置格式轉換
-2. 服務器管理
-   - 啟動/停止
-   - 狀態監控
-3. 高級功能
-   - 配置同步
-   - 自動更新
-   - 插件系統 
+### 6.1 版本規劃
+1. v0.1.0：基礎功能
+   - 服務器管理
+   - 配置管理
+   
+2. v0.2.0：穩定版本
+   - 日誌系統
+   - 錯誤處理
+   
+3. v1.0.0：完整版本
+   - 監控系統
+   - 自動化功能
+
+### 6.2 發布檢查清單
+- [ ] 單元測試通過
+- [ ] 文檔更新
+- [ ] 更新日誌
+- [ ] 版本標籤 
