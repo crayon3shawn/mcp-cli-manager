@@ -1,11 +1,13 @@
 {
   "name": "mcp-cli-manager",
-  "version": "1.0.0",
-  "description": "Model Context Protocol (MCP) 服務器命令行管理工具",
-  "main": "bin/mcp",
+  "version": "0.1.0",
+  "description": "MCP 服務器管理工具",
+  "main": "src/cli.js",
+  "bin": {
+    "mcp": "src/cli.js"
+  },
   "scripts": {
-    "install": "./install.sh",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/cli.js"
   },
   "keywords": [
     "mcp",
@@ -31,7 +33,9 @@
   "engines": {
     "node": ">=14.0.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "commander": "^11.1.0"
+  },
   "peerDependencies": {
     "@modelcontextprotocol/server-github": "^2025.1.23",
     "@modelcontextprotocol/server-filesystem": "^2025.1.14",

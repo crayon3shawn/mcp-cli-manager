@@ -1,132 +1,79 @@
-# MCP CLI Manager (Model Context Protocol 命令行管理工具)
+# MCP CLI Manager
 
-這是一個用於管理 Model Context Protocol (MCP) 服務器的命令行工具集。它提供了簡單的界面來管理多個 MCP 服務器，支持自動環境切換和狀態監控。
+A command-line tool for managing Model Context Protocol (MCP) servers.
 
-## 功能特點
+MCP 服務器管理命令行工具。
 
-- 🚀 自動環境切換（使用 fnm）
-- 📊 服務器狀態監控
-- 🔄 批量啟動/停止/重啟
-- 🔌 擴展性支持
-- 🎨 彩色命令行輸出
-- 🔍 系統診斷功能
+## Features | 功能特點
 
-## 系統要求
+- Unified server management (start/stop/status)
+- Configuration management
+- Support for both Claude Desktop and Cursor configurations
 
-- macOS 或 Linux 系統
-- Zsh shell
-- Node.js
-- [fnm](https://github.com/Schniz/fnm) (Fast Node Manager)
+- 統一的服務器管理（啟動/停止/狀態）
+- 配置文件管理
+- 支持 Claude Desktop 和 Cursor 的配置文件
 
-## 快速安裝
+## Installation | 安裝
 
 ```bash
-# 克隆倉庫
-git clone https://github.com/crayon3shawn/mcp-cli-manager.git
+npm install -g mcp-cli-manager
+```
 
-# 進入目錄
+## Usage | 使用方法
+
+### Initialize Configuration | 初始化配置
+
+```bash
+mcp-cli-manager init
+```
+
+### Import Existing Configuration | 導入現有配置
+
+```bash
+mcp-cli-manager import --from <path>
+```
+
+### List Configured Servers | 列出已配置的服務器
+
+```bash
+mcp-cli-manager config list
+```
+
+## Configuration | 配置
+
+The tool supports multiple configuration sources:
+- Claude Desktop configuration
+- Cursor configuration
+- Custom configuration
+
+支持多種配置來源：
+- Claude Desktop 配置
+- Cursor 配置
+- 自定義配置
+
+Configuration files are stored in:
+- Project level: `./servers.conf`
+- User level: `~/.config/mcp-cli-manager/servers.conf`
+
+配置文件存放位置：
+- 項目級別：`./servers.conf`
+- 用戶級別：`~/.config/mcp-cli-manager/servers.conf`
+
+## Development | 開發
+
+```bash
+# Clone the repository | 克隆倉庫
+git clone https://github.com/yourusername/mcp-cli-manager.git
+
+# Install dependencies | 安裝依賴
 cd mcp-cli-manager
+npm install
 
-# 運行安裝腳本
-./install.sh
+# Run locally | 本地運行
+npm start
 ```
 
-## 手動安裝
+## License | 許可證
 
-1. 克隆倉庫：
-   ```bash
-   git clone https://github.com/crayon3shawn/mcp-cli-manager.git
-   ```
-
-2. 創建配置目錄：
-   ```bash
-   mkdir -p ~/.config/mcp-manager
-   ```
-
-3. 複製配置文件：
-   ```bash
-   cp conf/servers.conf ~/.config/mcp-manager/
-   ```
-
-4. 創建命令連接：
-   ```bash
-   sudo ln -sf "$(pwd)/bin/mcp" /usr/local/bin/mcp
-   ```
-
-## 使用方法
-
-### 基本命令
-
-- `mcp help` - 顯示幫助信息
-- `mcp status` - 顯示所有服務器狀態
-- `mcp start [server]` - 啟動服務器（不指定則啟動所有）
-- `mcp stop [server]` - 停止服務器（不指定則停止所有）
-- `mcp restart [server]` - 重啟服務器（不指定則重啟所有）
-- `mcp doctor` - 診斷環境問題
-- `mcp reload` - 重新載入配置
-
-### 示例
-
-```bash
-# 啟動所有服務器
-mcp start
-
-# 只啟動 GitHub 服務器
-mcp start github
-
-# 檢查狀態
-mcp status
-
-# 停止所有服務器
-mcp stop
-```
-
-## 配置
-
-### 添加新服務器
-
-1. 編輯 `~/.config/mcp-manager/servers.conf`：
-   ```conf
-   [server-name]
-   command=執行命令
-   process=進程名稱
-   description=描述
-   ```
-
-2. 重新載入配置：
-   ```bash
-   mcp reload
-   ```
-
-## 故障排除
-
-如果遇到問題：
-
-1. 運行診斷：
-   ```bash
-   mcp doctor
-   ```
-
-2. 確認環境：
-   ```bash
-   fnm current  # 應該顯示 mcp-servers
-   ```
-
-3. 檢查日誌：
-   ```bash
-   mcp logs [server]
-   ```
-
-## 貢獻
-
-歡迎提交 Pull Requests！
-
-1. Fork 這個專案
-2. 創建您的特性分支
-3. 提交您的修改
-4. 推送到分支
-5. 創建新的 Pull Request
-
-## 授權
-
-MIT License - 查看 [LICENSE](LICENSE) 文件了解更多信息。 
+MIT 
