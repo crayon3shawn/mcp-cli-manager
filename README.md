@@ -1,6 +1,6 @@
 # MCP CLI Manager
 
-多服務器進程管理工具，用於管理多個 Node.js 服務器實例。
+一個用於管理 Model Context Protocol (MCP) 服務器的命令行工具。
 
 ## 功能特點
 
@@ -15,44 +15,117 @@
 ### 快速安裝（推薦）
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/yourusername/mcp-cli-manager/main/scripts/install.sh)"
-```
+# 使用 curl 安裝
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/crayon3shawn/mcp-cli-manager/main/scripts/install.sh)"
 
-或使用 wget：
-
-```bash
-/bin/bash -c "$(wget -qO- https://raw.githubusercontent.com/yourusername/mcp-cli-manager/main/scripts/install.sh)"
+# 或使用 wget 安裝
+/bin/bash -c "$(wget -qO- https://raw.githubusercontent.com/crayon3shawn/mcp-cli-manager/main/scripts/install.sh)"
 ```
 
 ### 從源碼安裝
 
 ```bash
-git clone https://github.com/yourusername/mcp-cli-manager.git
+git clone https://github.com/crayon3shawn/mcp-cli-manager.git
 cd mcp-cli-manager
 make install
 ```
 
 ## 系統要求
 
-- Node.js 18.0.0 或更高版本
-- npm 8.0.0 或更高版本
-- nvm（推薦）
+- Node.js >= 18.0.0
+- npm >= 8.0.0
+- git
+- curl
 
-## 快速開始
+## 配置
 
-1. 初始化配置：
+安裝過程中會引導您創建初始配置，或者您可以之後運行 `mcp init` 來創建。
+
+### 服務器配置 (servers.yaml)
+
+```yaml
+# MCP CLI Manager 服務器配置
+# 要啟用服務器，請移除 enabled: false 的註釋
+
+servers:
+  my-server:
+    #enabled: false  # 取消註釋以啟用服務器
+    name: "我的服務器"
+    description: "這是一個示例服務器"
+    command: "node server.js"
+    working_dir: "/path/to/server"
+    env:
+      NODE_ENV: "production"
+      PORT: "3000"
+    #ports:
+    #  - 3000
+    #health_check:
+    #  url: "http://localhost:3000/health"
+    #  interval: "5s"
+    #  timeout: "3s"
+    #  retries: 3
+```
+
+### 全局配置 (config.yaml)
+
+```yaml
+# MCP CLI Manager 全局配置
+# 取消註釋以啟用相應功能
+
+logging:
+  #level: info
+  #format: text
+  #file: mcp.log
+  #max_size: 10MB
+  #max_files: 5
+
+process:
+  find_method: pgrep
+  name_pattern: "%s"
+  #start_timeout: 30s
+  #stop_timeout: 30s
+  #health_check_interval: 5s
+  #stop_signals:
+  #  - signal: SIGTERM
+  #    wait: 5s
+  #  - signal: SIGKILL
+  #    wait: 0s
+```
+
+### 環境變量 (.env)
+
 ```bash
+# MCP CLI Manager 環境變量
+# 取消註釋並填入您的 API 密鑰
+
+#ANTHROPIC_API_KEY=your_key_here
+#OPENAI_API_KEY=your_key_here
+#GITHUB_API_TOKEN=your_token_here
+```
+
+## 使用方法
+
+```bash
+# 初始化配置
 mcp init
-```
 
-2. 啟動服務器：
-```bash
-mcp start server-name
-```
+# 列出所有服務器
+mcp list
 
-3. 查看狀態：
-```bash
-mcp status
+# 啟動服務器
+mcp start my-server
+
+# 停止服務器
+mcp stop my-server
+
+# 重啟服務器
+mcp restart my-server
+
+# 查看服務器狀態
+mcp status my-server
+
+# 查看幫助信息
+mcp --help
 ```
 
 ## 開發指南
@@ -61,7 +134,7 @@ mcp status
 
 1. 克隆倉庫：
 ```bash
-git clone https://github.com/yourusername/mcp-cli-manager.git
+git clone https://github.com/crayon3shawn/mcp-cli-manager.git
 cd mcp-cli-manager
 ```
 

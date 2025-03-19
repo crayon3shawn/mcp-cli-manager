@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Import required modules
-source "${MCP_ROOT}/lib/core/env.sh"
-source "${MCP_ROOT}/lib/core/log.sh"
-source "${MCP_ROOT}/lib/config/loader.sh"
+# Import core modules
+source "$(dirname "${BASH_SOURCE[0]}")/../core/env.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../core/log.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../config/loader.sh"
 
 # NVM environment setup
 setup_nvm_env() {
@@ -35,157 +35,159 @@ setup_nvm_env() {
     return 0
 }
 
-# 查找進程 ID
+# Find process by server name
 find_process() {
     local server_name=$1
-    local method=$(get_config ".process.findMethod")
-    local pattern=$(get_config ".process.namePattern" | sed "s/%s/$server_name/")
+    local method=${2:-"pgrep"}
+    local pid
     
     case "$method" in
         "pgrep")
-            pgrep -f "$pattern" 2>/dev/null
+            pid=$(pgrep -f "$server_name")
             ;;
         "ps")
-            ps aux | grep "$pattern" | grep -v grep | awk '{print $2}'
+            pid=$(ps aux | grep "$server_name" | grep -v grep | awk '{print $2}')
             ;;
         *)
-            log_error "未知的進程查找方式: $method"
+            log_error "Invalid process find method: $method"
             return 1
             ;;
     esac
+    
+    echo "$pid"
+    return 0
 }
 
-# 檢查進程是否運行中
+# Check if process is running
 is_process_running() {
     local pid=$1
-    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+    kill -0 "$pid" 2>/dev/null
 }
 
-# 停止進程
+# Stop process with timeout
 stop_process() {
     local pid=$1
-    local signals=($(get_config ".process.stopSignals[]"))
-    local timeout=$(get_config ".process.signalTimeout")
+    local timeout=${2:-30}
+    local signals=("TERM" "INT" "KILL")
+    local wait_times=(5 3 2)
     
-    for signal in "${signals[@]}"; do
-        log_info "正在發送 $signal 信號到進程 $pid"
+    for i in "${!signals[@]}"; do
+        local signal="${signals[$i]}"
+        local wait="${wait_times[$i]}"
+        
+        log_info "Sending SIG$signal to process $pid"
         kill -"$signal" "$pid" 2>/dev/null
         
-        # 等待進程結束
-        local count=0
-        while [ $count -lt $timeout ] && is_process_running "$pid"; do
+        # Wait for process to stop
+        local counter=0
+        while is_process_running "$pid" && [ "$counter" -lt "$wait" ]; do
             sleep 1
-            count=$((count + 1))
+            counter=$((counter + 1))
         done
         
-        # 如果進程已經結束，返回成功
         if ! is_process_running "$pid"; then
             return 0
         fi
     done
     
-    # 如果所有信號都發送完還沒結束，返回失敗
+    log_error "Failed to stop process $pid"
     return 1
 }
 
-# 啟動服務器
+# Start server
 start_server() {
     local server_name=$1
     local config
     
-    # 檢查服務器是否已經運行
-    local pid=$(find_process "$server_name")
+    # Get server configuration
+    config=$(get_server_config "$server_name") || return 1
+    
+    # Check if server is already running
+    local pid
+    pid=$(find_process "$server_name")
     if [ -n "$pid" ]; then
-        log_warn "服務器 $server_name 已經在運行中（PID: $pid）"
-        return 0
-    }
-    
-    # 獲取服務器配置
-    config=$(get_server_config "$server_name") || {
-        log_error "無法獲取服務器配置：$server_name"
-        return 1
-    }
-    
-    # 設置 NVM 環境
-    setup_nvm_env || return 1
-    
-    # 獲取配置值
-    local command=$(echo "$config" | yq -r '.command')
-    local args=$(echo "$config" | yq -r '.args[]' | tr '\n' ' ')
-    local work_dir=$(echo "$config" | yq -r '.workDir')
-    local base_dir=$(get_config ".global.workDirBase")
-    
-    # 展開工作目錄路徑
-    work_dir="${base_dir}/${work_dir}"
-    work_dir="${work_dir/#\~/$HOME}"
-    
-    # 創建工作目錄
-    mkdir -p "$work_dir" || {
-        log_error "無法創建工作目錄：$work_dir"
-        return 1
-    }
-    
-    # 切換到工作目錄
-    cd "$work_dir" || {
-        log_error "無法切換到工作目錄：$work_dir"
-        return 1
-    }
-    
-    # 啟動服務器
-    log_info "正在啟動服務器 $server_name"
-    nohup "$command" $args > "${MCP_LOG_DIR}/${server_name}.log" 2>&1 &
-    local new_pid=$!
-    
-    # 檢查服務器是否成功啟動
-    sleep 1
-    if is_process_running "$new_pid"; then
-        log_success "服務器 $server_name 已啟動（PID: $new_pid）"
-        return 0
-    else
-        log_error "服務器 $server_name 啟動失敗"
+        log_error "Server already running" \
+                 "Server: $server_name (PID: $pid)" \
+                 "Use 'mcp stop $server_name' to stop it first"
         return 1
     fi
+    
+    # Get working directory
+    local working_dir
+    working_dir=$(echo "$config" | jq -r '.working_dir // "."')
+    
+    # Create working directory if it doesn't exist
+    mkdir -p "$working_dir"
+    
+    # Get command and arguments
+    local command
+    command=$(echo "$config" | jq -r '.command')
+    
+    # Start server
+    cd "$working_dir" || {
+        log_error "Failed to change directory" \
+                 "Directory: $working_dir" \
+                 "Check if the directory exists and has correct permissions"
+        return 1
+    }
+    
+    # Run command in background
+    nohup "$command" > "$MCP_LOG_DIR/$server_name.log" 2>&1 &
+    
+    # Wait for process to start
+    sleep 1
+    
+    # Check if process started successfully
+    pid=$(find_process "$server_name")
+    if [ -z "$pid" ]; then
+        log_error "Failed to start server" \
+                 "Server: $server_name" \
+                 "Check the log file for details: $MCP_LOG_DIR/$server_name.log"
+        return 1
+    fi
+    
+    log_success "Server started successfully" \
+                "Server: $server_name (PID: $pid)"
+    return 0
 }
 
-# 停止服務器
+# Stop server
 stop_server() {
     local server_name=$1
-    local force=$2
+    local config
     
-    # 查找服務器進程
-    local pid=$(find_process "$server_name")
+    # Get server configuration
+    config=$(get_server_config "$server_name") || return 1
+    
+    # Find process
+    local pid
+    pid=$(find_process "$server_name")
     if [ -z "$pid" ]; then
-        log_warn "服務器 $server_name 未運行"
-        return 0
-    }
-    
-    # 停止進程
-    if [ "$force" = "true" ]; then
-        log_warn "強制停止服務器 $server_name（PID: $pid）"
-        kill -9 "$pid" 2>/dev/null
-    else
-        log_info "正在停止服務器 $server_name（PID: $pid）"
-        if ! stop_process "$pid"; then
-            log_error "無法正常停止服務器 $server_name，嘗試強制停止"
-            kill -9 "$pid" 2>/dev/null
-        fi
+        log_error "Server not running" \
+                 "Server: $server_name" \
+                 "Use 'mcp start $server_name' to start it"
+        return 1
     fi
     
-    # 檢查是否成功停止
-    if ! is_process_running "$pid"; then
-        log_success "服務器 $server_name 已停止"
+    # Stop process
+    if stop_process "$pid"; then
+        log_success "Server stopped successfully" \
+                   "Server: $server_name"
         return 0
     else
-        log_error "無法停止服務器 $server_name"
+        log_error "Failed to stop server" \
+                 "Server: $server_name (PID: $pid)" \
+                 "Try stopping it manually with: kill -9 $pid"
         return 1
     fi
 }
 
-# 獲取服務器狀態
+# Get server status
 get_server_status() {
     local server_name=$1
-    local pid=$(find_process "$server_name")
+    local pid
     
+    pid=$(find_process "$server_name")
     if [ -n "$pid" ] && is_process_running "$pid"; then
         echo "running"
     else

@@ -1,103 +1,120 @@
-# 配置文件說明
+# 配置指南
+
+本文檔說明如何配置 MCP CLI Manager。
 
 ## 配置文件位置
 
-### 開發環境
-```
-./config.yaml          # 主配置文件
-./servers.yaml        # 服務器配置
-./.env               # 環境變量
-```
+配置文件默認存放在以下位置：
 
-### 生產環境
-```
-~/.config/mcp-cli-manager/config.yaml    # Linux
-~/Library/Application Support/mcp-cli-manager/config.yaml  # macOS
+```bash
+${HOME}/.config/mcp-cli-manager/
+├── config.yaml    # 全局配置
+├── servers.yaml   # 服務器配置
+└── .env          # 環境變量
 ```
 
-## 配置文件格式
+## 服務器配置 (servers.yaml)
 
-### config.yaml
+服務器配置文件使用 YAML 格式，支持通過註釋控制功能的開啟和關閉。
 
-主配置文件，包含全局設置：
+### 基本結構
 
 ```yaml
-# 系統配置
-system:
-  # 日誌配置
-  log:
-    directory: ${MCP_HOME}/logs  # 日誌目錄
-    max_size: 10M               # 單個文件最大大小
-    max_files: 5               # 保留文件數量
-    level: info                # 日誌級別
+# MCP CLI Manager 服務器配置
+# 要啟用服務器，請移除 enabled: false 的註釋
 
-  # 進程管理配置
-  process:
-    find_method: pgrep        # 進程查找方法
-    name_pattern: "node-%s"   # 進程名稱模式
-    start_timeout: 30         # 啟動超時（秒）
-    stop_timeout: 30          # 停止超時（秒）
-    health_check_interval: 5  # 健康檢查間隔（秒）
-    stop_signals:            # 停止信號序列
-      - signal: SIGTERM
-        wait: 10
-      - signal: SIGINT
-        wait: 5
-      - signal: SIGKILL
-        wait: 0
-```
-
-### servers.yaml
-
-服務器配置文件：
-
-```yaml
 servers:
-  server-1:
-    name: "測試服務器 1"
-    description: "用於測試的 Node.js 服務器"
+  my-server:
+    #enabled: false  # 取消註釋以停用服務器
+    name: "我的服務器"
+    description: "服務器描述"
     command: "node server.js"
-    cwd: "/path/to/server"
+    working_dir: "/path/to/server"
     env:
       NODE_ENV: "production"
       PORT: "3000"
-    health_check:
-      url: "http://localhost:3000/health"
-      interval: 5
-      timeout: 3
-      retries: 3
-
-  server-2:
-    name: "測試服務器 2"
-    description: "另一個測試服務器"
-    command: "npm start"
-    cwd: "/path/to/another/server"
-    env:
-      NODE_ENV: "production"
-      PORT: "3001"
 ```
 
-### .env
+### 可選功能
 
-環境變量文件：
+通過註釋控制的可選功能：
 
-```bash
-# API 密鑰
-ANTHROPIC_API_KEY=your_key_here
-OPENAI_API_KEY=your_key_here
-GITHUB_API_TOKEN=your_token_here
-
-# 系統設置
-MCP_ENV=development
-MCP_LOG_LEVEL=debug
+```yaml
+servers:
+  my-server:
+    # ... 基本配置 ...
+    
+    #ports:              # 端口配置（可選）
+    #  - 3000
+    #  - 3001
+    
+    #health_check:       # 健康檢查配置（可選）
+    #  url: "http://localhost:3000/health"
+    #  interval: "5s"
+    #  timeout: "3s"
+    #  retries: 3
+    
+    #log:               # 日誌配置（可選）
+    #  file: "server.log"
+    #  level: "info"
+    #  format: "json"
 ```
 
-## 配置驗證
+## 全局配置 (config.yaml)
 
-使用以下命令驗證配置：
+全局配置文件同樣支持通過註釋控制功能的開啟和關閉。
+
+### 基本結構
+
+```yaml
+# MCP CLI Manager 全局配置
+# 取消註釋以啟用相應功能
+
+logging:
+  level: info        # 必需：日誌級別
+  #format: text      # 可選：日誌格式
+  #file: mcp.log    # 可選：日誌文件
+  #max_size: 10MB   # 可選：日誌文件大小限制
+  #max_files: 5     # 可選：保留的日誌文件數量
+
+process:
+  find_method: pgrep           # 必需：進程查找方法
+  name_pattern: "%s"          # 必需：進程名稱模式
+  #start_timeout: 30s         # 可選：啟動超時時間
+  #stop_timeout: 30s         # 可選：停止超時時間
+  #health_check_interval: 5s  # 可選：健康檢查間隔
+```
+
+### 進程控制配置
+
+通過註釋控制的進程管理選項：
+
+```yaml
+process:
+  # ... 基本配置 ...
+  
+  #stop_signals:           # 停止信號序列（可選）
+  #  - signal: SIGTERM
+  #    wait: 5s
+  #  - signal: SIGINT
+  #    wait: 3s
+  #  - signal: SIGKILL
+  #    wait: 0s
+```
+
+## 環境變量 (.env)
+
+環境變量文件用於存儲敏感信息，同樣支持通過註釋控制。
+
+### 基本結構
 
 ```bash
-mcp validate
+# MCP CLI Manager 環境變量
+# 取消註釋並填入您的 API 密鑰
+
+#ANTHROPIC_API_KEY=your_key_here
+#OPENAI_API_KEY=your_key_here
+#GITHUB_API_TOKEN=your_token_here
 ```
 
 ## 配置優先級
@@ -105,8 +122,19 @@ mcp validate
 1. 命令行參數
 2. 環境變量
 3. .env 文件
-4. 配置文件
+4. 配置文件 (config.yaml, servers.yaml)
 5. 默認值
+
+## 配置驗證
+
+系統會在加載配置時進行驗證：
+
+1. 必需字段檢查
+2. 數據類型驗證
+3. 值範圍檢查
+4. 依賴關係驗證
+
+如果發現配置錯誤，系統會提供詳細的錯誤信息和修復建議。
 
 ## 敏感信息處理
 

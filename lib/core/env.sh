@@ -5,18 +5,24 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 # Base directories configuration
-# MCP_HOME: Base directory for all MCP related files
-# Can be overridden by setting MCP_HOME environment variable
-export MCP_HOME="${MCP_HOME:-$HOME/.mcp}"
-export MCP_CONFIG_DIR="${MCP_CONFIG_DIR:-$PROJECT_ROOT/conf}"
-export MCP_LOG_DIR="${MCP_LOG_DIR:-$PROJECT_ROOT/logs}"
-export MCP_RUNTIME_DIR="${MCP_RUNTIME_DIR:-$PROJECT_ROOT/run}"
-export MCP_BACKUP_DIR="${MCP_BACKUP_DIR:-$MCP_HOME/backups}"
+if [ -n "$MCP_TEST" ]; then
+    # Test environment
+    export MCP_CONFIG_DIR="${MCP_CONFIG_DIR:-$PROJECT_ROOT/test/fixtures}"
+    export MCP_LOG_DIR="${MCP_LOG_DIR:-$PROJECT_ROOT/test/logs}"
+    export MCP_RUNTIME_DIR="${MCP_RUNTIME_DIR:-$PROJECT_ROOT/test/run}"
+    export MCP_ENV="test"
+else
+    # Production environment
+    export MCP_HOME="${MCP_HOME:-$HOME/.mcp}"
+    export MCP_CONFIG_DIR="${MCP_CONFIG_DIR:-$MCP_HOME/config}"
+    export MCP_LOG_DIR="${MCP_LOG_DIR:-$MCP_HOME/logs}"
+    export MCP_RUNTIME_DIR="${MCP_RUNTIME_DIR:-$MCP_HOME/run}"
+    export MCP_BACKUP_DIR="${MCP_BACKUP_DIR:-$MCP_HOME/backups}"
+    export MCP_ENV="${MCP_ENV:-production}"
+fi
 
 # Application configuration
-export MCP_ENV="${MCP_ENV:-production}"
 export MCP_LOG_LEVEL="${MCP_LOG_LEVEL:-1}"
-export MCP_CONFIG_FILE="${MCP_CONFIG_FILE:-$MCP_CONFIG_DIR/servers.json}"
 export MCP_LOG_MAX_SIZE="${MCP_LOG_MAX_SIZE:-10M}"
 export MCP_LOG_KEEP_DAYS="${MCP_LOG_KEEP_DAYS:-7}"
 
@@ -27,7 +33,6 @@ export MCP_SOCKET_DIR="${MCP_SOCKET_DIR:-$MCP_RUNTIME_DIR/sockets}"
 # Validate required environment variables
 validate_env() {
     local required_vars=(
-        "MCP_HOME"
         "MCP_CONFIG_DIR"
         "MCP_LOG_DIR"
         "MCP_RUNTIME_DIR"
@@ -48,14 +53,20 @@ validate_env() {
 # Initialize environment
 init_env() {
     local dirs=(
-        "$MCP_HOME"
         "$MCP_CONFIG_DIR"
         "$MCP_LOG_DIR"
         "$MCP_RUNTIME_DIR"
-        "$MCP_BACKUP_DIR"
-        "$MCP_PID_DIR"
-        "$MCP_SOCKET_DIR"
     )
+
+    # Add production-only directories
+    if [ "$MCP_ENV" != "test" ]; then
+        dirs+=(
+            "$MCP_HOME"
+            "$MCP_BACKUP_DIR"
+            "$MCP_PID_DIR"
+            "$MCP_SOCKET_DIR"
+        )
+    fi
 
     # Create required directories
     for dir in "${dirs[@]}"; do
@@ -83,14 +94,18 @@ get_env_info() {
 MCP Environment Information:
 ==========================
 Environment: $MCP_ENV
-Home Directory: $MCP_HOME
 Config Directory: $MCP_CONFIG_DIR
 Log Directory: $MCP_LOG_DIR
 Runtime Directory: $MCP_RUNTIME_DIR
-Backup Directory: $MCP_BACKUP_DIR
 Log Level: $MCP_LOG_LEVEL
-Config File: $MCP_CONFIG_FILE
 EOF
+
+    if [ "$MCP_ENV" != "test" ]; then
+        cat << EOF
+Home Directory: $MCP_HOME
+Backup Directory: $MCP_BACKUP_DIR
+EOF
+    fi
 }
 
 # Clean environment (useful for testing)

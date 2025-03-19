@@ -1,162 +1,208 @@
 # 開發指南
 
+本文檔說明如何參與 MCP CLI Manager 的開發。
+
 ## 開發環境設置
 
-1. **克隆倉庫**
+### 系統要求
+
+- Node.js >= 18.0.0
+- npm >= 8.0.0
+- git
+- curl
+- Bash >= 4.0
+
+### 克隆倉庫
+
 ```bash
-git clone https://github.com/yourusername/mcp-cli-manager.git
+git clone https://github.com/crayon3shawn/mcp-cli-manager.git
 cd mcp-cli-manager
 ```
 
-2. **安裝依賴**
+### 安裝依賴
+
 ```bash
+# 安裝開發依賴
 npm install
+
+# 檢查依賴版本
+npm outdated
 ```
 
-3. **準備開發環境**
+## 項目結構
+
+```
+.
+├── bin/                # 可執行文件
+│   └── mcp            # 主程序
+├── lib/               # 庫文件
+│   ├── core/          # 核心模塊
+│   ├── config/        # 配置管理
+│   └── process/       # 進程管理
+├── scripts/           # 腳本文件
+│   └── install.sh     # 安裝腳本
+├── test/              # 測試文件
+│   ├── fixtures/      # 測試數據
+│   └── *.bats        # 測試用例
+└── docs/              # 文檔
+    └── guides/        # 使用指南
+```
+
+## 開發流程
+
+### 1. 創建分支
+
 ```bash
-# 創建配置文件
-cp config.yaml.example config.yaml
-cp servers.yaml.example servers.yaml
-cp .env.example .env
+# 功能分支
+git checkout -b feature/your-feature
 
-# 創建必要目錄
-mkdir -p temp/logs
+# 修復分支
+git checkout -b fix/your-fix
 ```
 
-## 開發規範
+### 2. 代碼風格
 
-### 代碼風格
+- 使用 2 空格縮進
+- 使用 LF 換行符
+- 文件使用 UTF-8 編碼
+- Shell 腳本遵循 [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
 
-1. **Shell 腳本**
-   - 使用 shellcheck 進行語法檢查
-   - 函數名使用小寫字母加下劃線
-   - 變量名使用大寫字母加下劃線
-   - 添加適當的註釋
+### 3. 測試
 
-2. **提交信息**
-   - 使用現在時態
-   - 第一行為簡短描述
-   - 空一行後添加詳細說明
-   - 標註相關 issue
+#### 單元測試
 
-### 測試
+使用 [Bats](https://github.com/bats-core/bats-core) 進行測試：
 
-1. **單元測試**
 ```bash
 # 運行所有測試
 npm test
 
 # 運行特定測試
-npm test -- test/process.test.js
+npm test test/specific.bats
 ```
 
-2. **集成測試**
+#### 測試覆蓋率
+
 ```bash
-# 運行集成測試
-npm run test:integration
+# 生成覆蓋率報告
+npm run coverage
 ```
 
-3. **本地測試**
-```bash
-# 啟動測試服務器
-./bin/mcp start test-server
+### 4. 文檔
 
-# 檢查狀態
-./bin/mcp status test-server
+- 所有新功能必須添加文檔
+- 文檔使用繁體中文編寫
+- 代碼註釋使用繁體中文
+- 提交信息使用英文
 
-# 查看日誌
-./bin/mcp logs test-server
+### 5. 提交規範
+
+提交信息格式：
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
 ```
 
-## 調試技巧
+類型（type）：
+- feat: 新功能
+- fix: 錯誤修復
+- docs: 文檔更新
+- style: 代碼格式
+- refactor: 代碼重構
+- test: 測試相關
+- chore: 構建過程或輔助工具的變動
 
-1. **日誌級別**
-```bash
-# 設置詳細日誌
-export MCP_LOG_LEVEL=debug
+### 6. 代碼審查
 
-# 運行命令
-./bin/mcp start server-name
-```
-
-2. **調試模式**
-```bash
-# 啟用調試輸出
-./bin/mcp --debug start server-name
-```
-
-3. **檢查配置**
-```bash
-# 驗證配置
-./bin/mcp validate
-
-# 查看當前配置
-./bin/mcp config list
-```
-
-## 常見問題
-
-1. **進程沒有正確停止**
-   - 檢查 PID 文件
-   - 確認進程狀態
-   - 使用 force 選項
-
-2. **配置無法加載**
-   - 檢查文件權限
-   - 驗證 YAML 格式
-   - 確認環境變量
-
-3. **日誌問題**
-   - 檢查目錄權限
-   - 確認磁盤空間
-   - 查看系統日誌
+- 所有代碼必須經過審查
+- 確保測試通過
+- 確保文檔更新
+- 遵循代碼規範
 
 ## 發布流程
 
-1. **版本更新**
+### 1. 版本管理
+
+使用語義化版本：
+
 ```bash
 # 更新版本號
-npm version patch|minor|major
+npm version [major|minor|patch]
+
+# 生成更新日誌
+npm run changelog
 ```
 
-2. **測試檢查**
-```bash
-# 運行所有測試
-npm test
+### 2. 測試發布
 
-# 檢查代碼風格
-npm run lint
+```bash
+# 創建測試包
+npm pack
+
+# 本地安裝測試
+npm install -g ./mcp-cli-manager-*.tgz
 ```
 
-3. **文檔更新**
-   - 更新版本說明
-   - 檢查文檔準確性
-   - 更新示例代碼
+### 3. 正式發布
 
-4. **發布**
 ```bash
-# 推送到倉庫
-git push origin main --tags
-
 # 發布到 npm
 npm publish
+
+# 創建 Git 標籤
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
+```
+
+## 故障排除
+
+### 常見問題
+
+1. 依賴安裝失敗
+```bash
+# 清理 npm 緩存
+npm cache clean --force
+
+# 重新安裝
+rm -rf node_modules
+npm install
+```
+
+2. 測試失敗
+```bash
+# 檢查測試環境
+npm run test:env
+
+# 查看詳細日誌
+npm run test -- --verbose
+```
+
+### 調試
+
+1. 啟用調試日誌
+```bash
+export MCP_LOG_LEVEL=debug
+```
+
+2. 使用調試模式運行
+```bash
+bash -x bin/mcp command
 ```
 
 ## 貢獻指南
 
-1. **提交 Pull Request**
-   - Fork 倉庫
-   - 創建特性分支
-   - 提交更改
-   - 發起 Pull Request
+1. Fork 項目
+2. 創建功能分支
+3. 提交更改
+4. 推送到分支
+5. 創建 Pull Request
 
-2. **報告問題**
-   - 使用 issue 模板
-   - 提供詳細信息
-   - 添加重現步驟
+## 聯繫方式
 
-3. **代碼審查**
-   - 遵循代碼規範
-   - 添加測試用例
-   - 更新相關文檔 
+- Issues: GitHub Issues
+- 討論: GitHub Discussions
+- 郵件: your-email@example.com 

@@ -6,29 +6,37 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/core/log.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/config/loader.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/process/manager.sh"
 
+# Version
+VERSION="1.0.0"
+
 # Print usage
 print_usage() {
     cat << EOF
 Usage: $(basename "$0") <command> [options]
 
 Commands:
-  list                     列出所有已配置的服務器
-  get <server>            顯示服務器詳細配置
-  add <server>            添加新的服務器配置
-  remove <server>         移除服務器配置
-  import <file>           導入配置文件
-  start <server>          啟動服務器
-  stop <server>           停止服務器
-  restart <server>        重啟服務器
-  status <server>         查看服務器狀態
+  init                    初始化配置文件
+  list                    列出所有已配置的服務器
+  get <server>           顯示服務器詳細配置
+  add <server>           添加新的服務器配置
+  remove <server>        移除服務器配置
+  import <file>          導入配置文件
+  start <server>         啟動服務器
+  stop <server>          停止服務器
+  restart <server>       重啟服務器
+  status <server>        查看服務器狀態
 
 Options:
-  -h, --help             顯示幫助信息
+  -h, --help            顯示幫助信息
+  -v, --version         顯示版本信息
 EOF
 }
 
 # Main
 case "${1:-}" in
+    "init")
+        init_config
+        ;;
     "list")
         list_servers
         ;;
@@ -106,6 +114,10 @@ case "${1:-}" in
         ;;
     "-h"|"--help")
         print_usage
+        exit 0
+        ;;
+    "-v"|"--version")
+        echo "mcp-cli-manager version $VERSION"
         exit 0
         ;;
     *)
