@@ -1,73 +1,157 @@
 #!/bin/bash
+#
+# Process manager module for MCP CLI Manager
+# Handles server process management, monitoring, and cleanup
+#
+# Dependencies:
+#   - bash >= 4.0
+#   - ps
+#   - kill
+#
+# Usage:
+#   source ./manager.sh
+
+set -euo pipefail
+IFS=$'\n\t'
 
 # Import core modules
-source "$(dirname "${BASH_SOURCE[0]}")/../core/env.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../core/log.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../config/loader.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../core/env.sh"
+source "${SCRIPT_DIR}/../core/log.sh"
+source "${SCRIPT_DIR}/../config/loader.sh"
 
-# NVM environment setup
-setup_nvm_env() {
-    local node_version=$1
+# Process tracking array
+declare -A MANAGED_PROCESSES
+declare -A PROCESS_GROUPS
+
+#######################################
+# Check Node.js environment
+# Arguments:
+#   $1 - Required Node.js version (optional)
+# Returns:
+#   0 if Node.js is available
+#   1 if Node.js is not available or version mismatch
+#######################################
+check_node_env() {
+    local required_version=${1:-18}
     
-    # Load NVM
-    [ -s "$HOME/.nvm/nvm.sh" ] && \. "$HOME/.nvm/nvm.sh"
-    
-    if ! command -v nvm &> /dev/null; then
-        log_error "NVM is not installed. Please install NVM first."
+    if ! command -v node &> /dev/null; then
+        log_error "Node.js is not installed" \
+                 "System requirement" \
+                 "Please install Node.js v$required_version or higher"
         return 1
     }
     
-    # Use specified Node version or default to LTS
-    if [ -z "$node_version" ]; then
-        node_version=$(nvm version-remote --lts)
-    fi
+    local current_version
+    current_version=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
     
-    # Create or use the virtual environment
-    if ! nvm use "$node_version" &> /dev/null; then
-        log_info "Installing Node.js version $node_version"
-        nvm install "$node_version" || {
-            log_error "Failed to install Node.js version $node_version"
-            return 1
-        }
-    fi
+    if [ "$current_version" -lt "$required_version" ]; then
+        log_error "Node.js version is too old" \
+                 "Current: v$current_version, Required: v$required_version" \
+                 "Please upgrade Node.js to v$required_version or higher"
+        return 1
+    }
     
-    log_info "Using Node.js $(node --version) from NVM"
+    log_debug "Using Node.js $(node -v)"
     return 0
 }
 
+#######################################
 # Find process by server name
+# Arguments:
+#   $1 - Server name
+# Returns:
+#   Process ID if found and running
+#   Empty string if not found or not running
+#######################################
 find_process() {
     local server_name=$1
-    local method=${2:-"pgrep"}
-    local pid
+    local pid=${MANAGED_PROCESSES[$server_name]:-}
     
-    case "$method" in
-        "pgrep")
-            pid=$(pgrep -f "$server_name")
-            ;;
-        "ps")
-            pid=$(ps aux | grep "$server_name" | grep -v grep | awk '{print $2}')
-            ;;
-        *)
-            log_error "Invalid process find method: $method"
-            return 1
-            ;;
-    esac
+    if [ -n "$pid" ] && is_process_running "$pid"; then
+        echo "$pid"
+        return 0
+    fi
     
-    echo "$pid"
-    return 0
+    # Fallback to process search if not in memory
+    local found_pid
+    found_pid=$(ps aux | grep "$server_name" | grep -v grep | awk '{print $2}' | head -n 1)
+    
+    # Update tracking if process found
+    if [ -n "$found_pid" ] && is_process_running "$found_pid"; then
+        MANAGED_PROCESSES[$server_name]=$found_pid
+        echo "$found_pid"
+        return 0
+    fi
+    
+    # Clean up tracking if process not found
+    unset MANAGED_PROCESSES[$server_name]
+    return 1
 }
 
+#######################################
 # Check if process is running
+# Arguments:
+#   $1 - Process ID
+# Returns:
+#   0 if process is running
+#   1 if process is not running
+#######################################
 is_process_running() {
     local pid=$1
     kill -0 "$pid" 2>/dev/null
 }
 
+#######################################
+# Monitor process and perform cleanup if needed
+# Arguments:
+#   $1 - Server name
+#   $2 - Process ID
+#   $3 - Check interval in seconds (optional)
+# Returns:
+#   None
+#######################################
+monitor_process() {
+    local server_name=$1
+    local pid=$2
+    local check_interval=${3:-$DEFAULT_CHECK_INTERVAL}
+    
+    (
+        while is_process_running "$pid"; do
+            sleep "$check_interval"
+        done
+        
+        log_warn "Process stopped unexpectedly" \
+                "Server: $server_name (PID: $pid)"
+        cleanup_process "$server_name"
+    ) &
+}
+
+#######################################
+# Clean up process resources
+# Arguments:
+#   $1 - Server name
+# Returns:
+#   None
+#######################################
+cleanup_process() {
+    local server_name=$1
+    unset MANAGED_PROCESSES[$server_name]
+    log_debug "Cleaned up resources for $server_name"
+}
+
+#######################################
 # Stop process with timeout
+# Arguments:
+#   $1 - Process ID
+#   $2 - Timeout in seconds (optional)
+# Returns:
+#   0 if process stopped
+#   1 if failed to stop process
+#######################################
 stop_process() {
     local pid=$1
-    local timeout=${2:-30}
+    local timeout=${2:-$DEFAULT_STOP_TIMEOUT}
     local signals=("TERM" "INT" "KILL")
     local wait_times=(5 3 2)
     
@@ -75,10 +159,9 @@ stop_process() {
         local signal="${signals[$i]}"
         local wait="${wait_times[$i]}"
         
-        log_info "Sending SIG$signal to process $pid"
-        kill -"$signal" "$pid" 2>/dev/null
+        log_debug "Sending SIG$signal to process $pid"
+        kill -"$signal" "$pid" 2>/dev/null || continue
         
-        # Wait for process to stop
         local counter=0
         while is_process_running "$pid" && [ "$counter" -lt "$wait" ]; do
             sleep 1
@@ -90,14 +173,67 @@ stop_process() {
         fi
     done
     
-    log_error "Failed to stop process $pid"
+    log_error "Failed to stop process" \
+             "PID: $pid" \
+             "Try stopping it manually with: kill -9 $pid"
     return 1
 }
 
+#######################################
+# Create process group for server
+# Arguments:
+#   $1 - Server name
+#   $2 - Process ID
+# Returns:
+#   None
+#######################################
+create_process_group() {
+    local server_name=$1
+    local pid=$2
+    
+    # Create new process group
+    set -m
+    PROCESS_GROUPS[$server_name]=$pid
+    set +m
+}
+
+#######################################
+# Stop process group
+# Arguments:
+#   $1 - Server name
+#   $2 - Process ID
+# Returns:
+#   0 if process group stopped
+#   1 if failed to stop process group
+#######################################
+stop_process_group() {
+    local server_name=$1
+    local pid=$2
+    
+    if [ -n "${PROCESS_GROUPS[$server_name]:-}" ]; then
+        # Send signal to entire process group
+        kill -"${signals[$i]}" "-$pid" 2>/dev/null || continue
+        unset PROCESS_GROUPS[$server_name]
+        return 0
+    fi
+    
+    return 1
+}
+
+#######################################
 # Start server
+# Arguments:
+#   $1 - Server name
+# Returns:
+#   0 if server started successfully
+#   1 if failed to start server
+#######################################
 start_server() {
     local server_name=$1
     local config
+    
+    # Check Node.js environment
+    check_node_env || return 1
     
     # Get server configuration
     config=$(get_server_config "$server_name") || return 1
@@ -112,16 +248,21 @@ start_server() {
         return 1
     fi
     
-    # Get working directory
+    # Get working directory and create if needed
     local working_dir
-    working_dir=$(echo "$config" | jq -r '.working_dir // "."')
-    
-    # Create working directory if it doesn't exist
+    working_dir=$(echo "$config" | grep "working_dir:" | cut -d':' -f2- | tr -d ' ')
+    working_dir=${working_dir:-.}
     mkdir -p "$working_dir"
     
-    # Get command and arguments
+    # Get command
     local command
-    command=$(echo "$config" | jq -r '.command')
+    command=$(echo "$config" | grep "command:" | cut -d':' -f2- | tr -d ' ')
+    if [ -z "$command" ]; then
+        log_error "Invalid configuration" \
+                 "Missing command for server: $server_name" \
+                 "Add 'command:' field to the server configuration"
+        return 1
+    fi
     
     # Start server
     cd "$working_dir" || {
@@ -131,33 +272,44 @@ start_server() {
         return 1
     }
     
-    # Run command in background
-    nohup "$command" > "$MCP_LOG_DIR/$server_name.log" 2>&1 &
+    # Start process in new process group
+    nohup $command > "$MCP_LOG_DIR/$server_name.log" 2>&1 &
+    local new_pid=$!
+    
+    # Track process and create process group
+    MANAGED_PROCESSES[$server_name]=$new_pid
+    create_process_group "$server_name" "$new_pid"
     
     # Wait for process to start
     sleep 1
     
-    # Check if process started successfully
-    pid=$(find_process "$server_name")
-    if [ -z "$pid" ]; then
+    # Verify process is running
+    if ! is_process_running "$new_pid"; then
         log_error "Failed to start server" \
                  "Server: $server_name" \
-                 "Check the log file for details: $MCP_LOG_DIR/$server_name.log"
+                 "Check the log file: $MCP_LOG_DIR/$server_name.log"
+        cleanup_process "$server_name"
         return 1
     fi
     
+    # Start monitoring
+    monitor_process "$server_name" "$new_pid"
+    
     log_success "Server started successfully" \
-                "Server: $server_name (PID: $pid)"
+                "Server: $server_name (PID: $new_pid)"
     return 0
 }
 
+#######################################
 # Stop server
+# Arguments:
+#   $1 - Server name
+# Returns:
+#   0 if server stopped successfully
+#   1 if failed to stop server
+#######################################
 stop_server() {
     local server_name=$1
-    local config
-    
-    # Get server configuration
-    config=$(get_server_config "$server_name") || return 1
     
     # Find process
     local pid
@@ -169,20 +321,32 @@ stop_server() {
         return 1
     fi
     
-    # Stop process
-    if stop_process "$pid"; then
+    # Try to stop process group first
+    if stop_process_group "$server_name" "$pid"; then
+        cleanup_process "$server_name"
         log_success "Server stopped successfully" \
                    "Server: $server_name"
         return 0
-    else
-        log_error "Failed to stop server" \
-                 "Server: $server_name (PID: $pid)" \
-                 "Try stopping it manually with: kill -9 $pid"
-        return 1
     fi
+    
+    # Fallback to individual process stop
+    if stop_process "$pid"; then
+        cleanup_process "$server_name"
+        log_success "Server stopped successfully" \
+                   "Server: $server_name"
+        return 0
+    fi
+    
+    return 1
 }
 
+#######################################
 # Get server status
+# Arguments:
+#   $1 - Server name
+# Returns:
+#   "running" or "stopped"
+#######################################
 get_server_status() {
     local server_name=$1
     local pid
@@ -195,14 +359,19 @@ get_server_status() {
     fi
 }
 
+#######################################
 # Restart server
+# Arguments:
+#   $1 - Server name
+# Returns:
+#   0 if server restarted successfully
+#   1 if failed to restart server
+#######################################
 restart_server() {
     local server_name=$1
     
-    if is_server_running "$server_name"; then
-        if ! stop_server "$server_name"; then
-            return 1
-        fi
+    if [ "$(get_server_status "$server_name")" = "running" ]; then
+        stop_server "$server_name" || return 1
     fi
     
     start_server "$server_name"
