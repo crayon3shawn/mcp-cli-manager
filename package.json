@@ -1,22 +1,21 @@
 {
   "name": "mcp-cli-manager",
-  "version": "0.1.0",
-  "description": "MCP 服務器管理工具",
-  "main": "src/cli.js",
+  "version": "1.0.0",
+  "description": "A command-line tool for managing Model Context Protocol (MCP) servers",
+  "main": "bin/mcp",
   "bin": {
-    "mcp": "src/cli.js"
+    "mcp": "./bin/mcp"
   },
   "scripts": {
-    "start": "node src/cli.js"
+    "start": "./bin/mcp"
   },
   "keywords": [
-    "mcp",
-    "cursor",
     "cli",
-    "management",
-    "tool"
+    "mcp",
+    "server",
+    "management"
   ],
-  "author": "crayon3shawn",
+  "author": "",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -30,16 +29,7 @@
     "darwin",
     "linux"
   ],
-  "engines": {
-    "node": ">=14.0.0"
-  },
   "dependencies": {
     "commander": "^11.1.0"
-  },
-  "peerDependencies": {
-    "@modelcontextprotocol/server-github": "^2025.1.23",
-    "@modelcontextprotocol/server-filesystem": "^2025.1.14",
-    "@modelcontextprotocol/server-puppeteer": "^0.6.2",
-    "@modelcontextprotocol/server-sequential-thinking": "^0.6.2"
   }
 } 

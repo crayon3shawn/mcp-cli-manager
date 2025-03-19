@@ -1,0 +1,54 @@
+# MCP CLI Manager 服務器配置
+
+# 服務器列表
+servers:
+  # 測試服務器 1
+  test-server-1:
+    name: "測試服務器 1"
+    description: "用於測試的服務器實例"
+    type: "node"
+    command: "node server.js"
+    working_dir: "/path/to/server1"
+    env:
+      NODE_ENV: "development"
+      PORT: "3000"
+    ports:
+      - 3000
+    health_check:
+      url: "http://localhost:3000/health"
+      interval: "5s"
+      timeout: "3s"
+      retries: 3
+    log_file: "logs/server1.log"
+    max_restarts: 3
+    restart_delay: "5s"
+    dependencies: []
+    tags:
+      - "test"
+      - "development"
+
+  # 測試服務器 2
+  test-server-2:
+    name: "測試服務器 2"
+    description: "另一個測試服務器實例"
+    type: "node"
+    command: "node app.js"
+    working_dir: "/path/to/server2"
+    env:
+      NODE_ENV: "development"
+      PORT: "3001"
+    ports:
+      - 3001
+    health_check:
+      url: "http://localhost:3001/health"
+      interval: "5s"
+      timeout: "3s"
+      retries: 3
+    log_file: "logs/server2.log"
+    max_restarts: 3
+    restart_delay: "5s"
+    dependencies:
+      - "test-server-1"
+    tags:
+      - "test"
+      - "development"

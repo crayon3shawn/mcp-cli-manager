@@ -1,8 +1,6 @@
 # Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+package-lock.json
 
 # Environment
 .env
@@ -44,4 +42,51 @@ pids/
 # Local configuration
 .env
 .env.local
-.env.*.local 
+.env.*.local
+
+# 系統生成的目錄
+/logs/*
+!logs/.gitkeep
+
+# 環境配置
+.env
+.env.*
+!.env.example
+
+# 開發環境
+/temp
+/node_modules
+
+# 配置文件
+config.yaml
+servers.yaml
+/.env
+
+# 但保留示例文件
+!config.yaml.example
+!servers.yaml.example
+!.env.example
+
+# IDE 和編輯器
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# 依賴鎖定文件
+yarn.lock
+
+# 測試覆蓋率報告
+coverage/
+
+# 構建輸出
+dist/
+build/
+
+# 依賴鎖定文件
+package-lock.json
+yarn.lock
+
+# 測試覆蓋率報告
+coverage/ 

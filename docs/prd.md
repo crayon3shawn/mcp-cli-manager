@@ -49,6 +49,7 @@ mcp-cli-manager/
      - 包含錯誤原因（Reason）
      - 包含解決方案（Solution）
      - 使用標準的錯誤前綴（[ERROR], [WARN], etc.）
+   - 詳細的輸出格式規範請參考 [Output Style Guide](guides/output_style.md)
 
 2. **配置管理**
    - 使用 .env 管理敏感信息

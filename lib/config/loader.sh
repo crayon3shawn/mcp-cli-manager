@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Import utility functions
-source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
+# Import core modules
+source "${MCP_ROOT}/lib/core/env.sh"
+source "${MCP_ROOT}/lib/core/log.sh"
 
 # Configuration file paths
 CLAUDE_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
@@ -116,31 +117,58 @@ import_config() {
     return 0
 }
 
-# List servers
-list_servers() {
-    local config_file=${1:-$MCP_CONFIG_PATH}
+# Convert YAML to JSON using yq
+yaml_to_json() {
+    local yaml_file=$1
+    if ! command -v yq &> /dev/null; then
+        log_error "yq is not installed. Please install yq first."
+        return 1
+    }
+    yq -o=json eval "$yaml_file"
+}
+
+# Validate config schema
+validate_config_schema() {
+    local config_file=$1
     
-    # Check configuration file
+    # Check if file exists
     if [ ! -f "$config_file" ]; then
-        log_error "No configuration file found" \
-                 "File does not exist: $config_file" \
-                 "Run 'mcp init' or 'mcp import' first"
+        log_error "Configuration file not found: $config_file"
         return 1
+    }
+    
+    # Convert YAML to JSON for validation
+    local config_json
+    config_json=$(yaml_to_json "$config_file") || return 1
+    
+    # Validate using jq
+    if ! echo "$config_json" | jq empty 2>/dev/null; then
+        log_error "Invalid YAML/JSON syntax in config file"
+        return 1
+    }
+    
+    # Check required fields
+    local missing_fields=()
+    
+    # Check global section
+    if ! echo "$config_json" | jq -e '.global' >/dev/null; then
+        missing_fields+=("global")
     fi
     
-    # Validate JSON format
-    if ! validate_json "$config_file"; then
-        return 1
+    # Check servers section
+    if ! echo "$config_json" | jq -e '.servers' >/dev/null; then
+        missing_fields+=("servers")
     fi
     
-    # Display configuration information
-    local version
-    version=$(jq -r '.version' "$config_file")
-    log_info "Configuration version: $version"
+    # Check paths section
+    if ! echo "$config_json" | jq -e '.paths' >/dev/null; then
+        missing_fields+=("paths")
+    fi
     
-    # Display server list
-    log_info "Configured servers:"
-    jq -r '.mcpServers | to_entries[] | "  \(.key):\n    Command: \(.value.command)\n    Args: \(.value.args | join(" "))\n    Description: \(.value.description)\n"' "$config_file"
+    if [ ${#missing_fields[@]} -gt 0 ]; then
+        log_error "Missing required fields in config: ${missing_fields[*]}"
+        return 1
+    }
     
     return 0
 }
@@ -148,35 +176,44 @@ list_servers() {
 # Get server configuration
 get_server_config() {
     local server_name=$1
-    local config_file=${2:-$MCP_CONFIG_PATH}
+    local config_file="${MCP_CONFIG_FILE:-config.yaml}"
     
-    # Check parameters
-    if [ -z "$server_name" ]; then
-        log_error "No server name provided" \
-                 "Server name is required" \
-                 "Provide a server name as argument"
-        return 1
-    fi
-    
-    # Check configuration file
-    if [ ! -f "$config_file" ]; then
-        log_error "Configuration file not found" \
-                 "File does not exist: $config_file" \
-                 "Run 'mcp init' or 'mcp import' first"
-        return 1
-    fi
+    # Convert YAML to JSON and extract server config
+    local config_json
+    config_json=$(yaml_to_json "$config_file") || return 1
     
     # Get server configuration
     local server_config
-    server_config=$(jq -r ".mcpServers[\"$server_name\"]" "$config_file")
+    server_config=$(echo "$config_json" | jq -r --arg name "$server_name" '.servers[$name]')
     
     if [ "$server_config" = "null" ]; then
-        log_error "Server not found" \
-                 "No configuration found for server: $server_name" \
-                 "Check server name or list available servers with 'mcp list'"
+        log_error "Server configuration not found: $server_name"
         return 1
     fi
     
     echo "$server_config"
+    return 0
+}
+
+# List configured servers
+list_servers() {
+    local config_file="${MCP_CONFIG_FILE:-config.yaml}"
+    local config_json
+    
+    config_json=$(yaml_to_json "$config_file") || return 1
+    
+    # Get all server names and their status
+    echo "Configured Servers:"
+    echo "-----------------"
+    echo "$config_json" | jq -r '.servers | keys[]' | while read -r server_name; do
+        local description
+        local status
+        
+        description=$(echo "$config_json" | jq -r --arg name "$server_name" '.servers[$name].description // "No description"')
+        status=$(get_server_status "$server_name")
+        
+        printf "%-20s %-10s %s\n" "$server_name" "[$status]" "$description"
+    done
+    
     return 0
 } 

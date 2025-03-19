@@ -1,79 +1,107 @@
 # MCP CLI Manager
 
-A command-line tool for managing Model Context Protocol (MCP) servers.
+多服務器進程管理工具，用於管理多個 Node.js 服務器實例。
 
-MCP 服務器管理命令行工具。
+## 功能特點
 
-## Features | 功能特點
+- 多服務器管理
+- 進程監控
+- 日誌管理
+- 配置管理
+- 安全性驗證
 
-- Unified server management (start/stop/status)
-- Configuration management
-- Support for both Claude Desktop and Cursor configurations
+## 安裝
 
-- 統一的服務器管理（啟動/停止/狀態）
-- 配置文件管理
-- 支持 Claude Desktop 和 Cursor 的配置文件
-
-## Installation | 安裝
+### 快速安裝（推薦）
 
 ```bash
-npm install -g mcp-cli-manager
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/yourusername/mcp-cli-manager/main/scripts/install.sh)"
 ```
 
-## Usage | 使用方法
-
-### Initialize Configuration | 初始化配置
+或使用 wget：
 
 ```bash
-mcp-cli-manager init
+/bin/bash -c "$(wget -qO- https://raw.githubusercontent.com/yourusername/mcp-cli-manager/main/scripts/install.sh)"
 ```
 
-### Import Existing Configuration | 導入現有配置
+### 從源碼安裝
 
 ```bash
-mcp-cli-manager import --from <path>
-```
-
-### List Configured Servers | 列出已配置的服務器
-
-```bash
-mcp-cli-manager config list
-```
-
-## Configuration | 配置
-
-The tool supports multiple configuration sources:
-- Claude Desktop configuration
-- Cursor configuration
-- Custom configuration
-
-支持多種配置來源：
-- Claude Desktop 配置
-- Cursor 配置
-- 自定義配置
-
-Configuration files are stored in:
-- Project level: `./servers.conf`
-- User level: `~/.config/mcp-cli-manager/servers.conf`
-
-配置文件存放位置：
-- 項目級別：`./servers.conf`
-- 用戶級別：`~/.config/mcp-cli-manager/servers.conf`
-
-## Development | 開發
-
-```bash
-# Clone the repository | 克隆倉庫
 git clone https://github.com/yourusername/mcp-cli-manager.git
-
-# Install dependencies | 安裝依賴
 cd mcp-cli-manager
-npm install
-
-# Run locally | 本地運行
-npm start
+make install
 ```
 
-## License | 許可證
+## 系統要求
 
-MIT 
+- Node.js 18.0.0 或更高版本
+- npm 8.0.0 或更高版本
+- nvm（推薦）
+
+## 快速開始
+
+1. 初始化配置：
+```bash
+mcp init
+```
+
+2. 啟動服務器：
+```bash
+mcp start server-name
+```
+
+3. 查看狀態：
+```bash
+mcp status
+```
+
+## 開發指南
+
+### 環境設置
+
+1. 克隆倉庫：
+```bash
+git clone https://github.com/yourusername/mcp-cli-manager.git
+cd mcp-cli-manager
+```
+
+2. 安裝依賴：
+```bash
+npm install
+```
+
+3. 準備開發環境：
+```bash
+cp config.yaml.example config.yaml
+cp servers.yaml.example servers.yaml
+cp .env.example .env
+mkdir -p temp/logs
+```
+
+### 開發模式運行
+
+```bash
+make dev
+```
+
+### 運行測試
+
+```bash
+make test
+```
+
+## 文檔
+
+詳細文檔請參考 [docs/](docs/) 目錄：
+
+- [使用指南](docs/guides/cli.md)
+- [配置說明](docs/guides/config.md)
+- [開發指南](docs/guides/development.md)
+
+## 許可證
+
+[MIT](LICENSE)
+
+## 目錄結構
+
+```

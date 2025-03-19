@@ -1,171 +1,117 @@
 #!/bin/bash
 
-# Get script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$(dirname "$SCRIPT_DIR")/lib"
-
 # Import modules
-source "$LIB_DIR/utils.sh"
-source "$LIB_DIR/config.sh"
-source "$LIB_DIR/process.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/core/env.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/core/log.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/config/loader.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/process/manager.sh"
 
-# Display help information
-show_help() {
+# Print usage
+print_usage() {
     cat << EOF
-MCP (Model Context Protocol) CLI Manager
-
-Usage: mcp <command> [options]
+Usage: $(basename "$0") <command> [options]
 
 Commands:
-  init                     Initialize MCP configuration
-  import <file>           Import configuration from file
-  list                    List all configured servers
-  start <server>          Start a server
-  stop <server>           Stop a server
-  restart <server>        Restart a server
-  status [server]         Show server status (all if no server specified)
-  logs <server>           Show server logs
-  version                 Show version information
-  help                    Show this help message
+  list                     列出所有已配置的服務器
+  get <server>            顯示服務器詳細配置
+  add <server>            添加新的服務器配置
+  remove <server>         移除服務器配置
+  import <file>           導入配置文件
+  start <server>          啟動服務器
+  stop <server>           停止服務器
+  restart <server>        重啟服務器
+  status <server>         查看服務器狀態
 
 Options:
-  -c, --config <file>     Use specific config file
-  -v, --verbose           Show verbose output
-  -h, --help             Show this help message
-
-Examples:
-  mcp init                # Initialize configuration
-  mcp import config.json  # Import configuration
-  mcp start dev          # Start development server
-  mcp status             # Show all servers status
-
-For more information, visit: https://github.com/yourusername/mcp-cli-manager
+  -h, --help             顯示幫助信息
 EOF
 }
 
-# Display version information
-show_version() {
-    echo "MCP CLI Manager v0.1.0"
-}
-
-# Display logs
-show_logs() {
-    local server_name=$1
-    local log_file="/tmp/mcp/logs/$server_name.log"
-    
-    if [ ! -f "$log_file" ]; then
-        log_error "No logs found for server '$server_name'" \
-                 "Log file does not exist" \
-                 "Start the server first"
-        return 1
-    fi
-    
-    # Use less for viewing logs, fallback to cat if less is not available
-    if command -v less &> /dev/null; then
-        less +F "$log_file"
-    else
-        cat "$log_file"
-    fi
-}
-
-# Display status
-show_status() {
-    local server_name=$1
-    local config_file=${MCP_CONFIG_PATH:-servers.conf}
-    
-    if [ ! -f "$config_file" ]; then
-        log_error "No configuration file found" \
-                 "File does not exist: $config_file" \
-                 "Run 'mcp init' or 'mcp import' first"
-        return 1
-    fi
-    
-    if [ -z "$server_name" ]; then
-        # Show status for all servers
-        log_info "Server Status:"
-        jq -r '.[].name' "$config_file" | while read -r name; do
-            local status
-            status=$(get_server_status "$name")
-            echo "  $name: $status"
-        done
-    else
-        # Show status for specific server
-        if ! get_server_config "$server_name" > /dev/null; then
-            return 1
+# Main
+case "${1:-}" in
+    "list")
+        list_servers
+        ;;
+    "get")
+        if [ -z "${2:-}" ]; then
+            log_error "Server name required" \
+                     "Usage: $(basename "$0") get <server>" \
+                     "Use '$(basename "$0") list' to view available servers"
+            exit 1
         fi
-        local status
-        status=$(get_server_status "$server_name")
-        log_info "Server '$server_name' is $status"
-    fi
-}
-
-# Main command handler
-case "$1" in
-    "init")
-        check_dependencies
-        check_existing_configs
+        get_server_config "$2"
+        ;;
+    "add")
+        if [ -z "${2:-}" ]; then
+            log_error "Server name required" \
+                     "Usage: $(basename "$0") add <server>" \
+                     "Example: $(basename "$0") add my-server"
+            exit 1
+        fi
+        add_server_config "$2"
+        ;;
+    "remove")
+        if [ -z "${2:-}" ]; then
+            log_error "Server name required" \
+                     "Usage: $(basename "$0") remove <server>" \
+                     "Use '$(basename "$0") list' to view available servers"
+            exit 1
+        fi
+        remove_server_config "$2"
         ;;
     "import")
-        if [ -z "$2" ]; then
-            log_error "No file specified" \
-                     "Import command requires a file path" \
-                     "Usage: mcp import <file>"
+        if [ -z "${2:-}" ]; then
+            log_error "Configuration file path required" \
+                     "Usage: $(basename "$0") import <file>" \
+                     "Example: $(basename "$0") import ./my-config.json"
             exit 1
         fi
         import_config "$2"
         ;;
-    "list")
-        list_servers
-        ;;
     "start")
-        if [ -z "$2" ]; then
-            log_error "No server specified" \
-                     "Start command requires a server name" \
-                     "Usage: mcp start <server>"
+        if [ -z "${2:-}" ]; then
+            log_error "Server name required" \
+                     "Usage: $(basename "$0") start <server>" \
+                     "Use '$(basename "$0") list' to view available servers"
             exit 1
         fi
         start_server "$2"
         ;;
     "stop")
-        if [ -z "$2" ]; then
-            log_error "No server specified" \
-                     "Stop command requires a server name" \
-                     "Usage: mcp stop <server>"
+        if [ -z "${2:-}" ]; then
+            log_error "Server name required" \
+                     "Usage: $(basename "$0") stop <server>" \
+                     "Use '$(basename "$0") list' to view available servers"
             exit 1
         fi
         stop_server "$2"
         ;;
     "restart")
-        if [ -z "$2" ]; then
-            log_error "No server specified" \
-                     "Restart command requires a server name" \
-                     "Usage: mcp restart <server>"
+        if [ -z "${2:-}" ]; then
+            log_error "Server name required" \
+                     "Usage: $(basename "$0") restart <server>" \
+                     "Use '$(basename "$0") list' to view available servers"
             exit 1
         fi
         restart_server "$2"
         ;;
     "status")
-        show_status "$2"
-        ;;
-    "logs")
-        if [ -z "$2" ]; then
-            log_error "No server specified" \
-                     "Logs command requires a server name" \
-                     "Usage: mcp logs <server>"
+        if [ -z "${2:-}" ]; then
+            log_error "Server name required" \
+                     "Usage: $(basename "$0") status <server>" \
+                     "Use '$(basename "$0") list' to view available servers"
             exit 1
         fi
-        show_logs "$2"
+        get_server_status "$2"
         ;;
-    "version")
-        show_version
-        ;;
-    "help"|"-h"|"--help")
-        show_help
+    "-h"|"--help")
+        print_usage
+        exit 0
         ;;
     *)
-        log_error "Unknown command: $1" \
-                 "Command not recognized" \
-                 "Run 'mcp help' for usage information"
+        log_error "Unknown command: ${1:-}" \
+                 "Use '$(basename "$0") --help' to view available commands" \
+                 "Or '$(basename "$0") list' to view configured servers"
         exit 1
         ;;
 esac 
