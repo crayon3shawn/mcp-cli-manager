@@ -1,117 +1,243 @@
 #!/bin/bash
+#
+# Configuration loader module for MCP CLI Manager
+# Handles configuration file loading, parsing, and validation
+#
+# Dependencies:
+#   - bash >= 4.0
+#
+# Usage:
+#   source ./loader.sh
+
+set -euo pipefail
+IFS=$'\n\t'
 
 # Import core modules
-source "$(dirname "${BASH_SOURCE[0]}")/../core/env.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../core/log.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../core/env.sh"
+source "${SCRIPT_DIR}/../core/log.sh"
 
 # Configuration file paths
-if [ -n "$MCP_TEST" ]; then
-    CONFIG_DIR="${MCP_CONFIG_DIR:-$PWD/test/fixtures}"
-else
-    CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/mcp-cli-manager"
-fi
-
+CONFIG_DIR="${MCP_CONFIG_DIR:-$DEFAULT_CONFIG_DIR}"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
 SERVERS_FILE="$CONFIG_DIR/servers.yaml"
 ENV_FILE="$CONFIG_DIR/.env"
 
-# Create new configuration
-create_config() {
-    mkdir -p "$CONFIG_DIR"
+# Array to store parsed configuration
+declare -A CONFIG_VARS
+
+#######################################
+# Parse YAML file
+# Arguments:
+#   $1 - YAML file path
+#   $2 - Prefix (optional)
+# Returns:
+#   0 if parsing successful
+#   1 if parsing failed
+#######################################
+parse_yaml() {
+    local file=$1
+    local prefix=${2:-}
+    local current_key=""
+    local current_value=""
+    local in_array=0
+    local array_key=""
+    local array_index=0
+    local line
+    local key
+    local value
     
-    if [ ! -f "$CONFIG_FILE" ]; then
-        cp "config.yaml.example" "$CONFIG_FILE"
+    # Check if file exists
+    if [ ! -f "$file" ]; then
+        log_error "Configuration file not found" "File: $file"
+        return 1
+    }
+    
+    # Clear configuration array
+    CONFIG_VARS=()
+    
+    # Read file line by line
+    while IFS= read -r line; do
+        # Skip empty lines and comments
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        
+        # Remove leading spaces
+        while [[ "$line" =~ ^[[:space:]] ]]; do
+            line="${line# }"
+        done
+        
+        # Handle array items
+        if [[ "$line" =~ ^-[[:space:]] ]]; then
+            if [ $in_array -eq 0 ]; then
+                array_key="$current_key"
+                array_index=0
+                in_array=1
+            fi
+            line="${line#- }"
+            CONFIG_VARS["${prefix}${array_key}_${array_index}"]="$line"
+            ((array_index++))
+            continue
+        fi
+        
+        # Handle key-value pairs
+        if [[ "$line" =~ ^([^:]+):[[:space:]]*(.*)$ ]]; then
+            # Save previous key-value pair
+            if [ -n "$current_key" ]; then
+                CONFIG_VARS["${prefix}${current_key}"]="$current_value"
+            fi
+            
+            key="${BASH_REMATCH[1]}"
+            value="${BASH_REMATCH[2]}"
+            in_array=0
+            
+            # Remove quotes
+            while [[ "$value" =~ ^[\'\"] ]]; do
+                value="${value#[\'\"]}"
+            done
+            while [[ "$value" =~ [\'\"]$ ]]; do
+                value="${value%[\'\"]}"
+            done
+            
+            current_key="$key"
+            current_value="$value"
+        fi
+    done < "$file"
+    
+    # Save last key-value pair
+    if [ -n "$current_key" ]; then
+        CONFIG_VARS["${prefix}${current_key}"]="$current_value"
     fi
     
-    if [ ! -f "$SERVERS_FILE" ]; then
-        cp "servers.yaml.example" "$SERVERS_FILE"
-    fi
-    
-    if [ ! -f "$ENV_FILE" ]; then
-        cp ".env.example" "$ENV_FILE"
-    fi
-    
-    log_success "Configuration files created in $CONFIG_DIR"
     return 0
 }
 
-# Initialize configuration
-init_config() {
-    if [ -f "$CONFIG_FILE" ] || [ -f "$SERVERS_FILE" ] || [ -f "$ENV_FILE" ]; then
-        log_warn "Configuration files already exist"
-        read -p "Do you want to overwrite them? [y/N] " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_info "Keeping existing configuration"
-            return 0
+#######################################
+# Get configuration value
+# Arguments:
+#   $1 - Configuration key
+# Returns:
+#   Configuration value
+#######################################
+get_config() {
+    local key=$1
+    echo "${CONFIG_VARS[$key]:-}"
+}
+
+#######################################
+# Validate server configuration
+# Arguments:
+#   $1 - Server name
+# Returns:
+#   0 if configuration is valid
+#   1 if configuration is invalid
+#######################################
+validate_server_config() {
+    local server_name=$1
+    local field
+    local enabled
+    
+    # Check required fields
+    local required_fields=(
+        "name"
+        "command"
+        "enabled"
+    )
+    
+    for field in "${required_fields[@]}"; do
+        if [ -z "$(get_config "servers_${server_name}_${field}")" ]; then
+            log_error "Missing required field" \
+                     "Server: $server_name" \
+                     "Field: $field" \
+                     "Add '$field:' to the server configuration"
+            return 1
         fi
+    done
+    
+    # Validate field values
+    enabled=$(get_config "servers_${server_name}_enabled")
+    if [ "$enabled" != "true" ] && [ "$enabled" != "false" ]; then
+        log_error "Invalid enabled value" \
+                 "Server: $server_name" \
+                 "Value: $enabled" \
+                 "Must be 'true' or 'false'"
+        return 1
     fi
     
-    create_config
+    return 0
 }
 
-# Parse YAML file
-parse_yaml() {
-    local file=$1
-    local prefix=$2
-    local s='[[:space:]]*'
-    local w='[a-zA-Z0-9_]*'
-    
-    # 只讀取未註釋的行
-    sed -e 's/#.*$//' -e '/^$/d' "$file" | \
-    sed -ne "s|^\($s\):|\1|" \
-         -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$|\1$prefix\2=\"\3\"|p" \
-         -e "s|^\($s\)\($w\)$s:$s\(.*\)$|\1$prefix\2=\"\3\"|p"
-}
-
+#######################################
 # Get server configuration
+# Arguments:
+#   $1 - Server name
+# Returns:
+#   Server configuration
+#######################################
 get_server_config() {
     local server_name=$1
-    local config_file="$SERVERS_FILE"
+    local key
+    local enabled
     
-    if [ ! -f "$config_file" ]; then
-        log_error "Servers configuration file not found" \
-                 "Expected file: $config_file" \
+    # Check if configuration file exists
+    if [ ! -f "$SERVERS_FILE" ]; then
+        log_error "Server configuration file not found" \
+                 "Expected file: $SERVERS_FILE" \
                  "Run 'mcp init' to create configuration files"
         return 1
     fi
     
-    # 解析 YAML 配置
-    local config
-    while IFS= read -r line; do
-        config="$config\n$line"
-    done < <(parse_yaml "$config_file")
+    # Parse configuration file
+    parse_yaml "$SERVERS_FILE" || return 1
     
-    # 檢查服務器是否啟用
-    local enabled
-    enabled=$(echo -e "$config" | grep "^servers_${server_name}_enabled=" | cut -d'"' -f2)
+    # Check if server exists
+    if [ -z "$(get_config "servers_${server_name}_name")" ]; then
+        log_error "Server configuration not found" \
+                 "Server: $server_name" \
+                 "Check configuration file: $SERVERS_FILE"
+        return 1
+    fi
+    
+    # Validate configuration
+    validate_server_config "$server_name" || return 1
+    
+    # Check if server is enabled
+    enabled=$(get_config "servers_${server_name}_enabled")
     if [ "$enabled" = "false" ]; then
         log_error "Server is disabled" \
                  "Server: $server_name" \
-                 "Edit $config_file and set enabled: true to enable it"
+                 "Edit $SERVERS_FILE and set enabled: true to enable it"
         return 1
     fi
     
-    # 獲取服務器配置
-    local server_config
-    server_config=$(echo -e "$config" | grep "^servers_${server_name}_" | sed "s/^servers_${server_name}_//")
+    # Output configuration
+    for key in "${!CONFIG_VARS[@]}"; do
+        if [[ "$key" =~ ^servers_${server_name}_ ]]; then
+            echo "${key#servers_${server_name}_}=${CONFIG_VARS[$key]}"
+        fi
+    done
     
-    if [ -z "$server_config" ]; then
-        log_error "Server configuration not found: $server_name"
-        return 1
-    fi
-    
-    echo "$server_config"
     return 0
 }
 
+#######################################
 # List configured servers
+# Arguments:
+#   None
+# Returns:
+#   0 if listing successful
+#   1 if listing failed
+#######################################
 list_servers() {
-    local config_file="$SERVERS_FILE"
+    local key
+    local server_name
+    local description
+    local status
+    local enabled
     
-    if [ ! -f "$config_file" ]; then
-        log_error "Servers configuration file not found" \
-                 "Expected file: $config_file" \
+    # Check if configuration file exists
+    if [ ! -f "$SERVERS_FILE" ]; then
+        log_error "Server configuration file not found" \
+                 "Expected file: $SERVERS_FILE" \
                  "Run 'mcp init' to create configuration files"
         return 1
     fi
@@ -119,31 +245,30 @@ list_servers() {
     echo "Configured Servers:"
     echo "-----------------"
     
-    # 解析並顯示服務器列表
-    local config
-    while IFS= read -r line; do
-        config="$config\n$line"
-    done < <(parse_yaml "$config_file")
+    # Parse configuration file
+    parse_yaml "$SERVERS_FILE" || return 1
     
-    echo -e "$config" | grep "^servers_.*_name=" | while read -r line; do
-        local server_name
-        local description
-        local status
-        local enabled
-        
-        server_name=$(echo "$line" | sed -E 's/^servers_(.*)_name=.*$/\1/')
-        description=$(echo -e "$config" | grep "^servers_${server_name}_description=" | cut -d'"' -f2)
-        enabled=$(echo -e "$config" | grep "^servers_${server_name}_enabled=" | cut -d'"' -f2)
-        
-        if [ "$enabled" = "false" ]; then
-            status="disabled"
-        elif [ -n "$MCP_TEST" ]; then
-            status="stopped"
-        else
-            status=$(get_server_status "$server_name")
+    # List all servers
+    for key in "${!CONFIG_VARS[@]}"; do
+        if [[ "$key" =~ ^servers_(.*)_name$ ]]; then
+            server_name="${BASH_REMATCH[1]}"
+            description=$(get_config "servers_${server_name}_description")
+            enabled=$(get_config "servers_${server_name}_enabled")
+            
+            if [ "$enabled" = "false" ]; then
+                status="disabled"
+            elif [ -n "$MCP_TEST" ]; then
+                status="stopped"
+            else
+                status=$(get_server_status "$server_name")
+            fi
+            
+            printf "%-20s %-10s %-10s %s\n" \
+                   "$server_name" \
+                   "[$status]" \
+                   "[$enabled]" \
+                   "${description:-No description}"
         fi
-        
-        printf "%-20s %-10s %-10s %s\n" "$server_name" "[$status]" "[$enabled]" "${description:-No description}"
     done
     
     return 0

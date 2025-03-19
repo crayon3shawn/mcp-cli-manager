@@ -162,4 +162,49 @@ process:
 4. **定期檢查**
    - 驗證配置有效性
    - 更新過期的配置
-   - 移除未使用的配置 
+   - 移除未使用的配置
+
+## Configuration Format
+
+### Simple Text Format
+- Use simple text formats for configuration:
+  - Key-value pairs
+  - Space-separated values
+  - Line-based records
+- Avoid complex formats:
+  - JSON
+  - XML
+  - YAML (unless using simple key-value structure)
+- Example:
+  ```bash
+  # Good: Simple key-value format
+  name=web-server
+  port=8080
+  enabled=true
+  
+  # Bad: Complex YAML structure
+  servers:
+    web:
+      config:
+        ports:
+          - 8080
+          - 8443
+  ```
+
+### Configuration Parsing
+- Use pure Bash implementation for parsing
+- Avoid external tools and dependencies
+- Example:
+  ```bash
+  # Good: Using Bash built-in features
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^([^=]+)=(.*)$ ]]; then
+      key="${BASH_REMATCH[1]}"
+      value="${BASH_REMATCH[2]}"
+      config["$key"]="$value"
+    fi
+  done < config.txt
+  
+  # Bad: Using external tools
+  yq eval '.key' config.yaml
+  ``` 

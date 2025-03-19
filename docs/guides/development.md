@@ -473,3 +473,45 @@ monitor_process() {
    - 定期檢查進程狀態
    - 記錄異常情況
    - 自動清理資源 
+
+## Dependencies
+
+### Core Principles
+- Minimize external dependencies
+- Use pure Bash implementation when possible
+- Follow Unix philosophy of "Do One Thing and Do It Well"
+- Ensure portability across different Unix-like systems
+
+### Allowed Dependencies
+- bash >= 4.0 (for associative arrays)
+- Standard Unix commands:
+  - `mkdir`, `cp`, `rm`, `mv` (file operations)
+  - `chmod`, `chown` (permissions)
+  - `ps`, `kill` (process management)
+  - `grep`, `sed` (text processing, only if absolutely necessary)
+
+### Forbidden Dependencies
+- Node.js and npm packages
+- Python scripts
+- Perl scripts
+- Ruby scripts
+- Any other programming language interpreters
+- External YAML parsers (like `yq`)
+- External JSON parsers
+- External configuration tools
+
+### Implementation Guidelines
+- Use Bash built-in features:
+  - Associative arrays for data structures
+  - Parameter expansion for string manipulation
+  - Process substitution for command output
+  - Here documents for multi-line strings
+- Example:
+  ```bash
+  # Good: Using Bash built-in features
+  declare -A config
+  config["key"]="value"
+  
+  # Bad: Using external tools
+  yq eval '.key' config.yaml
+  ```

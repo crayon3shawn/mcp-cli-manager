@@ -9,6 +9,7 @@ MCP CLI 管理工具是一個命令行工具，用於管理 Model Context Protoc
 - 簡化 MCP 服務的管理流程
 - 提供統一的命令行界面
 - 確保跨平台兼容性（macOS/Linux）
+- 遵循 Unix 哲學和 XDG 標準
 
 ### 1.3 目標用戶
 - AI 開發者和研究人員
@@ -18,33 +19,38 @@ MCP CLI 管理工具是一個命令行工具，用於管理 Model Context Protoc
 ## 2. 開發規範
 
 ### 2.1 技術棧
-- Shell：zsh
-- 依賴工具：
-  - jq（JSON 處理）
-  - fnm（Node.js 版本管理）
+- Shell：Bash 4.0+
+- 依賴工具：無（純 Shell 實現）
+- 配置格式：YAML
 
 ### 2.2 目錄結構
+遵循 XDG 基礎目錄規範：
+
 ```
+# 開發環境
 mcp-cli-manager/
 ├── bin/                # 可執行文件
 ├── lib/                # 核心邏輯
-├── conf/               # 配置文件
 ├── docs/               # 文檔
-├── test/               # 測試文件
-└── examples/           # 示例
+└── tests/              # 測試文件
+
+# 生產環境
+~/.config/mcp-cli-manager/     # 配置目錄
+~/.local/share/mcp-cli-manager/ # 數據目錄
+~/.cache/mcp-cli-manager/      # 緩存目錄
 ```
 
 ### 2.3 開發原則
 1. **代碼規範**
+   - 遵循 [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
    - 註釋語言：英文
      - 函數和模塊的頂部註釋必須包含功能描述
      - 複雜邏輯必須有行內註釋說明
-     - 使用清晰的命名約定（Naming Conventions）
+     - 使用清晰的命名約定
      - 保持註釋的簡潔性和專業性
    - 文檔語言：
      - 開發文檔：中文
      - 用戶文檔：英文
-     - API 文檔：英文
    - 錯誤信息：英文
      - 包含錯誤原因（Reason）
      - 包含解決方案（Solution）
@@ -52,8 +58,8 @@ mcp-cli-manager/
    - 詳細的輸出格式規範請參考 [Output Style Guide](guides/output_style.md)
 
 2. **配置管理**
-   - 使用 .env 管理敏感信息
-   - JSON 格式存儲配置
+   - 使用 YAML 格式存儲配置
+   - 遵循 XDG 基礎目錄規範
    - 支持多環境配置
 
 ## 3. 功能規格（按優先級排序）
@@ -62,7 +68,7 @@ mcp-cli-manager/
 - [ ] 服務器生命週期管理
   - 啟動/停止/重啟
   - 狀態檢查
-  - PID 管理
+  - 進程管理
 - [ ] 配置文件管理
   - 讀取/寫入
   - 格式驗證
@@ -70,8 +76,8 @@ mcp-cli-manager/
 
 ### 3.2 第二階段：增強功能
 - [ ] 環境管理
-  - Node.js 版本控制
-  - 依賴項管理
+  - 環境變量管理
+  - 依賴項檢查
 - [ ] 日誌系統
   - 日誌記錄
   - 日誌輪轉
@@ -106,28 +112,20 @@ mcp-cli-manager/
    ```
 
 ### 4.2 配置文件
-1. **.env 文件**
+1. **環境變量 (.env)**
    ```bash
-   # API Keys（敏感信息）
-   MCP_GITHUB_TOKEN=xxx
-   MCP_OPENAI_KEY=xxx
-   
    # 環境設置
    MCP_LOG_LEVEL=info
-   MCP_CONFIG_PATH=/etc/mcp/config.json
+   MCP_CONFIG_PATH=~/.config/mcp-cli-manager/config.yaml
    ```
 
-2. **配置文件 (config.json)**
-   ```json
-   {
-     "servers": {
-       "dev": {
-         "command": "node",
-         "args": ["server.js"],
-         "description": "Development server"
-       }
-     }
-   }
+2. **配置文件 (config.yaml)**
+   ```yaml
+   servers:
+     dev:
+       command: node
+       args: [server.js]
+       description: Development server
    ```
 
 ### 4.3 命令行界面規範

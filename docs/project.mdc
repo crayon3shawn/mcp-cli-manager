@@ -1,0 +1,26 @@
+# MCP CLI Manager 文檔索引
+
+## 核心文檔
+- [產品需求文檔](prd.md) - 項目需求和規格說明
+- [開發指南](guides/development.md) - 開發環境設置和指南
+- [CLI 指南](guides/cli.md) - 命令行界面文檔
+- [配置指南](guides/config.md) - 配置文件格式和使用說明
+- [安全指南](guides/security.md) - 安全最佳實踐和指南
+
+## 標準和指南
+- [編碼標準](guides/standards.md) - 代碼風格和質量標準
+- [編碼風格指南](guides/coding_style.md) - 詳細的編碼風格規則
+- [輸出風格指南](guides/output_style.md) - CLI 輸出格式標準
+
+## 設計原則
+- [Unix 哲學](principles/unix.md) - 核心 Unix 原則和實踐
+- [XDG 標準](principles/xdg.md) - XDG 基礎目錄規範遵循
+
+## 環境設計
+- [環境配置](design/environments.md) - 開發、測試和生產環境配置
+
+## 快速連結
+- [開發環境設置](guides/development.md#setup)
+- [配置格式](guides/config.md#format)
+- [CLI 命令](guides/cli.md#commands)
+- [安全指南](guides/security.md#guidelines) 
