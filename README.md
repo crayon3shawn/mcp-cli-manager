@@ -1,6 +1,100 @@
 # MCP CLI Manager
 
-一個用於管理 Model Context Protocol (MCP) 服務器的命令行工具。
+[English](#english) | [繁體中文](#繁體中文)
+
+---
+
+# English
+
+## Introduction
+
+MCP CLI Manager is a command-line tool for managing multiple server processes.
+
+## Features
+
+- Process management (start, stop, restart)
+- Process monitoring
+- Resource cleanup
+- Node.js environment validation
+
+## Installation
+
+```bash
+npm install -g mcp-cli-manager
+```
+
+## Usage
+
+```bash
+mcp start server-name
+mcp stop server-name
+mcp restart server-name
+mcp status server-name
+```
+
+## Configuration
+
+Create `config.yaml` in your configuration directory:
+
+```yaml
+servers:
+  app1:
+    name: "Application 1"
+    command: "node app.js"
+    working_dir: "./app1"
+    enabled: true
+```
+
+## License
+
+MIT License
+
+---
+
+# 繁體中文
+
+## 簡介
+
+MCP CLI Manager 是一個用於管理多個伺服器進程的命令列工具。
+
+## 功能特點
+
+- 進程管理（啟動、停止、重啟）
+- 進程監控
+- 資源清理
+- Node.js 環境驗證
+
+## 安裝
+
+```bash
+npm install -g mcp-cli-manager
+```
+
+## 使用方式
+
+```bash
+mcp start server-name
+mcp stop server-name
+mcp restart server-name
+mcp status server-name
+```
+
+## 配置
+
+在配置目錄中創建 `config.yaml`：
+
+```yaml
+servers:
+  app1:
+    name: "應用程式 1"
+    command: "node app.js"
+    working_dir: "./app1"
+    enabled: true
+```
+
+## 授權條款
+
+MIT 授權
 
 ## 功能特點
 

@@ -171,13 +171,39 @@ clean_env() {
 }
 
 #######################################
-# Exports environment variables to a file
-# Globals:
-#   MCP_CONFIG_DIR
+# Load environment variables
+# Loads environment variables from .env file
+#######################################
+load_env() {
+    // ... existing code ...
+}
+
+#######################################
+# Get environment variable
 # Arguments:
-#   $1 - Output file path (optional)
+#   $1 - Variable name
 # Returns:
-#   None
+#   Variable value if set, empty string otherwise
+#######################################
+get_env() {
+    // ... existing code ...
+}
+
+#######################################
+# Set environment variable
+# Arguments:
+#   $1 - Variable name
+#   $2 - Variable value
+#######################################
+set_env() {
+    // ... existing code ...
+}
+
+#######################################
+# Export environment variable
+# Arguments:
+#   $1 - Variable name
+#   $2 - Variable value
 #######################################
 export_env() {
     local output_file=${1:-"$MCP_CONFIG_DIR/$ENV_FILE_NAME"}
@@ -188,6 +214,15 @@ export_env() {
     # Export all MCP_ prefixed variables
     env | grep '^MCP_' > "$output_file"
     echo "Exported environment variables to: $output_file"
+}
+
+#######################################
+# Unset environment variable
+# Arguments:
+#   $1 - Variable name
+#######################################
+unset_env() {
+    // ... existing code ...
 }
 
 # Main program

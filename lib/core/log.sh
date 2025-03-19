@@ -35,16 +35,24 @@ COLOR_BLUE="\033[0;34m"
 CURRENT_LOG_LEVEL=${MCP_LOG_LEVEL:-$LOG_LEVEL_INFO}
 
 #######################################
-# Log debug message to stderr and file
-# Globals:
-#   CURRENT_LOG_LEVEL
-#   LOG_LEVEL_DEBUG
-#   COLOR_BLUE
-#   COLOR_RESET
+# Initialize logging
+# Sets up log directory and file
+#######################################
+init_logging() {
+    # Create log directory
+    mkdir -p "$MCP_LOG_DIR"
+    
+    # Rotate logs if needed
+    rotate_logs "$MCP_LOG_DIR/mcp$LOG_FILE_SUFFIX"
+    
+    log_debug "Logging initialized with level: $MCP_LOG_LEVEL"
+}
+
+#######################################
+# Log debug message
 # Arguments:
-#   $1 - Message to log
-# Returns:
-#   None
+#   $1 - Message
+#   $2... - Additional context (optional)
 #######################################
 log_debug() {
     if [ "$CURRENT_LOG_LEVEL" -le "$LOG_LEVEL_DEBUG" ]; then
@@ -54,14 +62,10 @@ log_debug() {
 }
 
 #######################################
-# Log info message to stderr and file
-# Globals:
-#   CURRENT_LOG_LEVEL
-#   LOG_LEVEL_INFO
+# Log info message
 # Arguments:
-#   $1 - Message to log
-# Returns:
-#   None
+#   $1 - Message
+#   $2... - Additional context (optional)
 #######################################
 log_info() {
     if [ "$CURRENT_LOG_LEVEL" -le "$LOG_LEVEL_INFO" ]; then
@@ -71,16 +75,10 @@ log_info() {
 }
 
 #######################################
-# Log warning message to stderr and file
-# Globals:
-#   CURRENT_LOG_LEVEL
-#   LOG_LEVEL_WARN
-#   COLOR_YELLOW
-#   COLOR_RESET
+# Log warning message
 # Arguments:
-#   $1 - Message to log
-# Returns:
-#   None
+#   $1 - Message
+#   $2... - Additional context (optional)
 #######################################
 log_warn() {
     if [ "$CURRENT_LOG_LEVEL" -le "$LOG_LEVEL_WARN" ]; then
@@ -90,18 +88,10 @@ log_warn() {
 }
 
 #######################################
-# Log error message to stderr and file
-# Globals:
-#   CURRENT_LOG_LEVEL
-#   LOG_LEVEL_ERROR
-#   COLOR_RED
-#   COLOR_RESET
+# Log error message
 # Arguments:
-#   $1 - Error message
-#   $2 - Error reason (optional)
-#   $3 - Solution suggestion (optional)
-# Returns:
-#   None
+#   $1 - Message
+#   $2... - Additional context (optional)
 #######################################
 log_error() {
     if [ "$CURRENT_LOG_LEVEL" -le "$LOG_LEVEL_ERROR" ]; then
@@ -121,16 +111,10 @@ log_error() {
 }
 
 #######################################
-# Log success message to stderr and file
-# Globals:
-#   CURRENT_LOG_LEVEL
-#   LOG_LEVEL_INFO
-#   COLOR_GREEN
-#   COLOR_RESET
+# Log success message
 # Arguments:
-#   $1 - Message to log
-# Returns:
-#   None
+#   $1 - Message
+#   $2... - Additional context (optional)
 #######################################
 log_success() {
     if [ "$CURRENT_LOG_LEVEL" -le "$LOG_LEVEL_INFO" ]; then
@@ -156,15 +140,11 @@ format_log_message() {
 }
 
 #######################################
-# Write log message to file
-# Globals:
-#   MCP_LOG_DIR
-#   LOG_FILE_SUFFIX
+# Write log message
 # Arguments:
 #   $1 - Log level
 #   $2 - Message
-# Returns:
-#   None
+#   $3... - Additional context (optional)
 #######################################
 write_log() {
     local level=$1
@@ -204,27 +184,6 @@ rotate_logs() {
         # Clean old log files
         find "$(dirname "$log_file")" -name "$(basename "$log_file").*" -mtime +"${MCP_LOG_KEEP_DAYS:-7}" -delete
     fi
-}
-
-#######################################
-# Initialize logging system
-# Globals:
-#   MCP_LOG_DIR
-#   MCP_LOG_LEVEL
-#   LOG_FILE_SUFFIX
-# Arguments:
-#   None
-# Returns:
-#   None
-#######################################
-init_logging() {
-    # Create log directory
-    mkdir -p "$MCP_LOG_DIR"
-    
-    # Rotate logs if needed
-    rotate_logs "$MCP_LOG_DIR/mcp$LOG_FILE_SUFFIX"
-    
-    log_debug "Logging initialized with level: $MCP_LOG_LEVEL"
 }
 
 # Main program

@@ -1,31 +1,88 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
+rules:
+  - name: "Shell 腳本規範"
+    description: "Shell 腳本開發規範和最佳實踐"
+    pattern: "**/*.sh"
+    rule: |
+      我會幫助你：
+      1. 遵循 Google Shell Style Guide
+      2. 使用英文撰寫註釋：
+         - 函數和模塊頂部必須有功能描述
+         - 複雜邏輯需要行內註釋
+         - 使用清晰的命名約定
+      3. 錯誤處理：
+         - 使用英文錯誤信息
+         - 包含 Reason 和 Solution
+         - 使用標準錯誤前綴 [ERROR], [WARN] 等
+      4. 目錄結構：
+         bin/ - 可執行文件
+         lib/ - 核心邏輯
+         tests/ - 測試文件
 
-# MCP CLI Manager 文檔索引
+  - name: "配置文件規範"
+    description: "YAML 配置文件的格式和結構規範"
+    pattern: "**/*.{yaml,yml}"
+    rule: |
+      我會確保：
+      1. 使用 YAML 格式
+      2. 遵循 XDG 基礎目錄規範
+      3. 支持多環境配置
+      4. 配置結構清晰
+      5. 包含必要的註釋說明
 
-## 核心文檔
-- [產品需求文檔](../docs/prd.md) - 項目需求和規格說明
-- [開發指南](../docs/guides/development.md) - 開發環境設置和指南
-- [CLI 指南](../docs/guides/cli.md) - 命令行界面文檔
-- [配置指南](../docs/guides/config.md) - 配置文件格式和使用說明
-- [安全指南](../docs/guides/security.md) - 安全最佳實踐和指南
+  - name: "文檔規範"
+    description: "文檔編寫規範"
+    pattern: "**/*.md"
+    rule: |
+      我會幫助你：
+      1. 語言使用：
+         - 開發文檔：繁體中文
+         - 用戶文檔：英文與中文
+      2. 文檔結構：
+         - 使用清晰的標題層級
+         - 包含必要的示例
+         - 代碼塊標註語言
+      3. 文檔類型：
+         - 技術文檔
+         - 用戶指南
 
-## 標準和指南
-- [開發標準](../docs/guides/standards.md) - 代碼風格、質量標準和國際化規範
-- [輸出風格指南](../docs/guides/output_style.md) - CLI 輸出格式標準
+  - name: "測試規範"
+    description: "測試文件的編寫規範"
+    pattern: "tests/**/*.sh"
+    rule: |
+      我會確保：
+      1. 使用 shunit2/bats 進行單元測試
+      2. 測試覆蓋：
+         - 配置管理
+         - 進程控制
+         - 工具函數
+      3. 測試命名規範
+      4. 包含測試描述和預期結果
 
-## 設計原則
-- [Unix 哲學](../docs/principles/unix.md) - 核心 Unix 原則和實踐
-- [XDG 標準](../docs/principles/xdg.md) - XDG 基礎目錄規範遵循
+  - name: "版本發布規範"
+    description: "版本發布和變更管理規範"
+    pattern: "**/CHANGELOG.md"
+    rule: |
+      我會幫助你：
+      1. 版本號規範：major.minor.patch
+      2. 發布檢查清單：
+         - 單元測試通過
+         - 文檔更新
+         - 更新日誌
+         - 版本標籤
+      3. 變更日誌格式規範
 
-## 環境設計
-- [環境配置](../docs/design/environments.md) - 開發、測試和生產環境配置
-
-## 快速連結
-- [開發環境設置](../docs/guides/development.md#setup)
-- [配置格式](../docs/guides/config.md#format)
-- [CLI 命令](../docs/guides/cli.md#commands)
-- [安全指南](../docs/guides/security.md#guidelines) 
+  - name: "安全規範"
+    description: "代碼安全性規範"
+    pattern: "**/*.{sh,yaml,yml}"
+    rule: |
+      我會確保：
+      1. 不在代碼中硬編碼敏感信息
+      2. 使用環境變量存儲配置
+      3. 正確處理權限問題
+      4. 安全的錯誤處理
+      5. 日誌安全性

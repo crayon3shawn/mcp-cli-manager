@@ -23,11 +23,7 @@ source "${SCRIPT_DIR}/log.sh"
 
 #######################################
 # Check if required commands are available
-# Arguments:
-#   None
-# Returns:
-#   0 if all dependencies are met
-#   1 if any dependency is missing
+# Verifies system dependencies and optional tools
 #######################################
 check_dependencies() {
     local missing=0
@@ -42,14 +38,7 @@ check_dependencies() {
 
 #######################################
 # Initialize required directories
-# Globals:
-#   DEFAULT_CONFIG_DIR
-#   DEFAULT_LOG_DIR
-#   DEFAULT_RUN_DIR
-# Arguments:
-#   None
-# Returns:
-#   None
+# Creates default configuration, log and runtime directories
 #######################################
 init_directories() {
     local dirs=(
@@ -68,12 +57,7 @@ init_directories() {
 
 #######################################
 # Load environment variables from file
-# Globals:
-#   ENV_FILE_NAME
-# Arguments:
-#   None
-# Returns:
-#   None
+# Loads configuration from .env file if exists
 #######################################
 load_env() {
     local env_file="$DEFAULT_CONFIG_DIR/$ENV_FILE_NAME"
@@ -91,9 +75,6 @@ load_env() {
 # Validate YAML configuration file
 # Arguments:
 #   $1 - Path to YAML file
-# Returns:
-#   0 if valid
-#   1 if invalid
 #######################################
 validate_config() {
     local file=$1
@@ -139,8 +120,7 @@ validate_config() {
 # Arguments:
 #   $1 - Path to file
 # Returns:
-#   0 if backup created
-#   1 if source file not found
+#   Backup file path if successful
 #######################################
 backup_file() {
     local file=$1
@@ -162,9 +142,6 @@ backup_file() {
 # Check if a process is running
 # Arguments:
 #   $1 - Process ID
-# Returns:
-#   0 if process is running
-#   1 if process is not running
 #######################################
 is_process_running() {
     local pid=$1
@@ -179,6 +156,7 @@ is_process_running() {
 # Arguments:
 #   $1 - Process name pattern
 # Returns:
+#   Process ID if found, empty string otherwise
 #   Process ID if found
 #   Empty string if not found
 #######################################

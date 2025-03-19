@@ -1,4 +1,40 @@
 #!/bin/bash
+#
+# 檔案名稱: validator.sh
+# 描述: 安全性驗證模組，用於驗證命令執行、檔案權限和環境安全性
+# 作者: MCP CLI Manager Team
+# 建立日期: 2024-03-19
+# 最後更新: 2024-03-19
+#
+# 使用方式:
+#   ./validator.sh <command> [args]
+#
+# 命令:
+#   validate-command <command> [args] - 驗證命令是否允許執行
+#   validate-file-permissions <file> [perms] - 驗證檔案權限
+#   validate-env-security - 驗證環境安全性設定
+#   add-allowed-command <command> [description] - 新增允許的命令
+#   remove-allowed-command <command> - 移除允許的命令
+#   list-allowed-commands - 列出所有允許的命令
+#
+# 返回值:
+#   0: 驗證成功
+#   1: 驗證失敗
+#   2: 參數錯誤
+#
+# 依賴:
+#   - core/env.sh: 環境變數設定
+#   - core/log.sh: 日誌功能
+#
+# 安全注意事項:
+#   - 此模組包含敏感的安全驗證邏輯
+#   - 修改時需經過安全審查
+#   - 確保檔案權限設定正確（建議：644）
+#
+# 範例:
+#   ./validator.sh validate-command "node" "script.js"
+#   ./validator.sh validate-file-permissions "config.yaml" 644
+#   ./validator.sh validate-env-security
 
 # Import core modules
 source "$(dirname "${BASH_SOURCE[0]}")/../core/env.sh"
@@ -26,7 +62,15 @@ DANGEROUS_PATTERNS=(
     "dd if=/dev/random"
 )
 
-# Check if command is allowed
+# 函數名稱: is_command_allowed
+# 描述: 檢查命令是否在允許清單中
+# 參數:
+#   $1: 要檢查的命令
+# 返回值:
+#   0: 命令允許執行
+#   1: 命令不允許執行
+# 使用範例:
+#   is_command_allowed "node"
 is_command_allowed() {
     local cmd=$1
     local base_cmd
@@ -42,7 +86,17 @@ is_command_allowed() {
     return 1
 }
 
-# Get command description
+# 函數名稱: get_command_description
+# 描述: 獲取命令的描述信息
+# 參數:
+#   $1: 命令名稱
+# 返回值:
+#   0: 成功獲取描述
+#   1: 命令不存在
+# 輸出:
+#   命令的描述文字或 "Unknown command"
+# 使用範例:
+#   description=$(get_command_description "node")
 get_command_description() {
     local cmd=$1
     local base_cmd
@@ -62,7 +116,20 @@ get_command_description() {
     return 1
 }
 
-# Validate command
+# 函數名稱: validate_command
+# 描述: 驗證命令的安全性，包括白名單檢查和危險模式檢測
+# 參數:
+#   $1: 要執行的命令
+#   $2: 命令參數（可選）
+# 返回值:
+#   0: 驗證通過
+#   1: 驗證失敗
+# 安全檢查:
+#   - 命令是否在白名單中
+#   - 是否包含危險模式
+#   - 命令是否存在於系統中
+# 使用範例:
+#   validate_command "node" "script.js"
 validate_command() {
     local command=$1
     local args=$2
@@ -111,7 +178,16 @@ validate_command() {
     return 0
 }
 
-# Validate file permissions
+# 函數名稱: validate_file_permissions
+# 描述: 驗證檔案權限是否符合安全要求
+# 參數:
+#   $1: 檔案路徑
+#   $2: 要求的權限（預設：644）
+# 返回值:
+#   0: 權限符合要求
+#   1: 權限不符合要求或檔案不存在
+# 使用範例:
+#   validate_file_permissions "config.yaml" 644
 validate_file_permissions() {
     local file=$1
     local required_perms=${2:-644}
@@ -139,7 +215,19 @@ validate_file_permissions() {
     return 0
 }
 
-# Validate environment security
+# 函數名稱: validate_env_security
+# 描述: 驗證環境安全性設定，包括目錄權限和配置檔案權限
+# 參數:
+#   無
+# 返回值:
+#   0: 所有檢查通過
+#   非0: 發現的問題數量
+# 檢查項目:
+#   - 運行時目錄權限
+#   - PID 目錄權限
+#   - 配置檔案權限
+# 使用範例:
+#   validate_env_security
 validate_env_security() {
     local issues=0
     
@@ -182,7 +270,16 @@ validate_env_security() {
     return $issues
 }
 
-# Add command to whitelist
+# 函數名稱: add_allowed_command
+# 描述: 將新的命令添加到允許清單中
+# 參數:
+#   $1: 命令名稱
+#   $2: 命令描述（可選，預設："Custom command"）
+# 返回值:
+#   0: 添加成功
+#   1: 命令已存在
+# 使用範例:
+#   add_allowed_command "npm" "Node.js package manager"
 add_allowed_command() {
     local command=$1
     local description=${2:-"Custom command"}
@@ -200,7 +297,15 @@ add_allowed_command() {
     log_success "Added command to whitelist: $command ($description)"
 }
 
-# Remove command from whitelist
+# 函數名稱: remove_allowed_command
+# 描述: 從允許清單中移除命令
+# 參數:
+#   $1: 要移除的命令名稱
+# 返回值:
+#   0: 移除成功
+#   1: 命令不存在於清單中
+# 使用範例:
+#   remove_allowed_command "npm"
 remove_allowed_command() {
     local command=$1
     local new_commands=()
@@ -227,7 +332,16 @@ remove_allowed_command() {
     fi
 }
 
-# List allowed commands
+# 函數名稱: list_allowed_commands
+# 描述: 列出所有允許執行的命令及其描述
+# 參數:
+#   無
+# 返回值:
+#   0: 總是成功
+# 輸出格式:
+#   命令名稱: 描述
+# 使用範例:
+#   list_allowed_commands
 list_allowed_commands() {
     log_info "Allowed commands:"
     for entry in "${ALLOWED_COMMANDS[@]}"; do

@@ -1,15 +1,10 @@
 #!/bin/bash
 #
-# Process manager module for MCP CLI Manager
-# Handles server process management, monitoring, and cleanup
+# Process manager for MCP CLI Manager
+# Handles server process lifecycle and monitoring
 #
-# Dependencies:
-#   - bash >= 4.0
-#   - ps
-#   - kill
-#
-# Usage:
-#   source ./manager.sh
+# Dependencies: bash>=4.0, ps, kill
+# Source: source ./manager.sh
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -20,17 +15,13 @@ source "${SCRIPT_DIR}/../core/env.sh"
 source "${SCRIPT_DIR}/../core/log.sh"
 source "${SCRIPT_DIR}/../config/loader.sh"
 
-# Process tracking array
+# Process tracking
 declare -A MANAGED_PROCESSES
 declare -A PROCESS_GROUPS
 
 #######################################
 # Check Node.js environment
-# Arguments:
-#   $1 - Required Node.js version (optional)
-# Returns:
-#   0 if Node.js is available
-#   1 if Node.js is not available or version mismatch
+# Verifies Node.js installation and version
 #######################################
 check_node_env() {
     local required_version=${1:-18}
@@ -61,8 +52,7 @@ check_node_env() {
 # Arguments:
 #   $1 - Server name
 # Returns:
-#   Process ID if found and running
-#   Empty string if not found or not running
+#   Process ID if found, empty string otherwise
 #######################################
 find_process() {
     local server_name=$1
@@ -93,9 +83,6 @@ find_process() {
 # Check if process is running
 # Arguments:
 #   $1 - Process ID
-# Returns:
-#   0 if process is running
-#   1 if process is not running
 #######################################
 is_process_running() {
     local pid=$1
@@ -103,13 +90,10 @@ is_process_running() {
 }
 
 #######################################
-# Monitor process and perform cleanup if needed
+# Monitor process status
 # Arguments:
 #   $1 - Server name
 #   $2 - Process ID
-#   $3 - Check interval in seconds (optional)
-# Returns:
-#   None
 #######################################
 monitor_process() {
     local server_name=$1
@@ -131,8 +115,6 @@ monitor_process() {
 # Clean up process resources
 # Arguments:
 #   $1 - Server name
-# Returns:
-#   None
 #######################################
 cleanup_process() {
     local server_name=$1
@@ -144,10 +126,7 @@ cleanup_process() {
 # Stop process with timeout
 # Arguments:
 #   $1 - Process ID
-#   $2 - Timeout in seconds (optional)
-# Returns:
-#   0 if process stopped
-#   1 if failed to stop process
+#   $2 - Timeout in seconds (default: 30)
 #######################################
 stop_process() {
     local pid=$1
@@ -224,9 +203,6 @@ stop_process_group() {
 # Start server
 # Arguments:
 #   $1 - Server name
-# Returns:
-#   0 if server started successfully
-#   1 if failed to start server
 #######################################
 start_server() {
     local server_name=$1
@@ -304,9 +280,6 @@ start_server() {
 # Stop server
 # Arguments:
 #   $1 - Server name
-# Returns:
-#   0 if server stopped successfully
-#   1 if failed to stop server
 #######################################
 stop_server() {
     local server_name=$1
@@ -344,8 +317,6 @@ stop_server() {
 # Get server status
 # Arguments:
 #   $1 - Server name
-# Returns:
-#   "running" or "stopped"
 #######################################
 get_server_status() {
     local server_name=$1
@@ -363,9 +334,6 @@ get_server_status() {
 # Restart server
 # Arguments:
 #   $1 - Server name
-# Returns:
-#   0 if server restarted successfully
-#   1 if failed to restart server
 #######################################
 restart_server() {
     local server_name=$1
