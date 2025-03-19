@@ -4,29 +4,37 @@
 
 ## 開發環境設置
 
-### 系統要求
+### CLI 工具要求
 
-- Node.js >= 18.0.0
-- npm >= 8.0.0
+- Bash >= 4.0
 - git
 - curl
-- Bash >= 4.0
+- shellcheck（用於代碼檢查）
+- bats-core（用於測試）
+
+### Server 環境要求
+
+MCP Server 是基於 Node.js 的應用，需要：
+
+- nvm（用於 Node.js 版本管理）
+- Node.js >= 18.0.0（建議使用 nvm 安裝）
+- npm >= 8.0.0
+
+```bash
+# 使用 nvm 安裝指定版本的 Node.js
+nvm install 18.0.0
+nvm use 18.0.0
+
+# 確認版本
+node --version  # 應該顯示 v18.0.0
+npm --version   # 應該顯示 8.x.x
+```
 
 ### 克隆倉庫
 
 ```bash
 git clone https://github.com/crayon3shawn/mcp-cli-manager.git
 cd mcp-cli-manager
-```
-
-### 安裝依賴
-
-```bash
-# 安裝開發依賴
-npm install
-
-# 檢查依賴版本
-npm outdated
 ```
 
 ## 項目結構
@@ -48,158 +56,189 @@ npm outdated
     └── guides/        # 使用指南
 ```
 
-## 開發流程
+## Shell 腳本規範
 
-### 1. 創建分支
+我們遵循 [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html) 的規範：
 
-```bash
-# 功能分支
-git checkout -b feature/your-feature
+### 1. 文件格式
 
-# 修復分支
-git checkout -b fix/your-fix
-```
-
-### 2. 代碼風格
-
-- 使用 2 空格縮進
+- 使用 `.sh` 後綴
+- 使用 UTF-8 編碼
 - 使用 LF 換行符
-- 文件使用 UTF-8 編碼
-- Shell 腳本遵循 [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
+- 使用 2 空格縮進
+- 最大行長度 80 字符
 
-### 3. 測試
+### 2. Shell 選項
 
-#### 單元測試
-
-使用 [Bats](https://github.com/bats-core/bats-core) 進行測試：
+每個腳本都應該以以下選項開始：
 
 ```bash
-# 運行所有測試
-npm test
+#!/bin/bash
 
-# 運行特定測試
-npm test test/specific.bats
+set -euo pipefail
+IFS=$'\n\t'
 ```
 
-#### 測試覆蓋率
+### 3. 命名規範
 
 ```bash
-# 生成覆蓋率報告
-npm run coverage
+# 文件名
+my_script.sh
+test_server.sh
+
+# 函數名（動詞_名詞）
+start_server() {
+  ...
+}
+
+validate_config() {
+  ...
+}
+
+# 局部變量（小寫加下劃線）
+local pid_file
+local server_name
+
+# 環境變量（大寫加下劃線）
+readonly MCP_VERSION="1.0.0"
+export MCP_CONFIG_DIR="/etc/mcp"
 ```
 
-### 4. 文檔
+### 4. 註釋規範
 
-- 所有新功能必須添加文檔
-- 文檔使用繁體中文編寫
-- 代碼註釋使用繁體中文
-- 提交信息使用英文
+```bash
+# 文件頭部註釋
+#!/bin/bash
+#
+# 進程管理模塊
+# 用於管理服務器進程的啟動、停止和監控。
 
-### 5. 提交規範
-
-提交信息格式：
-
+# 函數註釋
+#######################################
+# 啟動指定的服務器
+# Globals:
+#   MCP_CONFIG_DIR
+#   MCP_LOG_DIR
+# Arguments:
+#   server_name: 服務器名稱
+# Returns:
+#   0: 成功
+#   1: 失敗
+#######################################
+start_server() {
+  ...
+}
 ```
-<type>(<scope>): <subject>
 
-<body>
+### 5. 錯誤處理
 
-<footer>
+```bash
+# 使用 set -e
+set -e
+
+# 使用 trap 處理錯誤
+trap 'echo "錯誤：第 $LINENO 行"; exit 1' ERR
+
+# 檢查命令返回值
+if ! command -v curl &> /dev/null; then
+  echo "錯誤：需要安裝 curl" >&2
+  exit 1
+fi
 ```
 
-類型（type）：
-- feat: 新功能
-- fix: 錯誤修復
-- docs: 文檔更新
-- style: 代碼格式
-- refactor: 代碼重構
-- test: 測試相關
-- chore: 構建過程或輔助工具的變動
+## 測試規範
 
-### 6. 代碼審查
+### 1. CLI 工具測試
 
-- 所有代碼必須經過審查
-- 確保測試通過
-- 確保文檔更新
-- 遵循代碼規範
+使用 bats-core 進行測試：
 
-## 發布流程
+```bash
+# 運行測試
+./test/run.sh
 
-### 1. 版本管理
+# 指定測試文件
+./test/run.sh test/process.bats
+```
 
-使用語義化版本：
+### 2. Server 測試環境
+
+在運行 Server 相關測試前，確保：
+
+1. 使用正確的 Node.js 版本：
+```bash
+nvm use 18.0.0
+```
+
+2. 檢查環境變量：
+```bash
+# 檢查 NODE_ENV
+echo $NODE_ENV  # 應為 'test'
+
+# 檢查 Server 配置
+echo $MCP_SERVER_CONFIG  # 應指向測試配置文件
+```
+
+## 版本管理
+
+### 1. 版本號格式
+
+使用語義化版本：`MAJOR.MINOR.PATCH`
+
+### 2. 發布流程
 
 ```bash
 # 更新版本號
-npm version [major|minor|patch]
+./scripts/version.sh bump minor
 
-# 生成更新日誌
-npm run changelog
-```
-
-### 2. 測試發布
-
-```bash
-# 創建測試包
-npm pack
-
-# 本地安裝測試
-npm install -g ./mcp-cli-manager-*.tgz
-```
-
-### 3. 正式發布
-
-```bash
-# 發布到 npm
-npm publish
-
-# 創建 Git 標籤
-git tag -a v1.0.0 -m "Release v1.0.0"
+# 創建發布標籤
+git tag -a "v1.0.0" -m "Release v1.0.0"
 git push origin v1.0.0
 ```
 
+## 代碼審查清單
+
+- [ ] 符合 Shell 風格指南
+- [ ] 通過 shellcheck 檢查
+- [ ] 包含單元測試
+- [ ] 更新相關文檔
+- [ ] 測試覆蓋主要功能
+- [ ] 錯誤處理完善
+- [ ] 日誌輸出合理
+
 ## 故障排除
 
-### 常見問題
+### 1. CLI 工具問題
 
-1. 依賴安裝失敗
 ```bash
-# 清理 npm 緩存
-npm cache clean --force
+# 運行 shellcheck
+shellcheck lib/**/*.sh
 
-# 重新安裝
-rm -rf node_modules
-npm install
+# 修復常見問題
+./scripts/lint.sh --fix
 ```
 
-2. 測試失敗
+### 2. Server 環境問題
+
 ```bash
-# 檢查測試環境
-npm run test:env
+# Node.js 版本問題
+nvm list  # 檢查已安裝的版本
+nvm install 18.0.0  # 安裝需要的版本
 
-# 查看詳細日誌
-npm run test -- --verbose
-```
+# 環境檢查
+./scripts/check-env.sh  # 檢查所有必要的環境變量和依賴
 
-### 調試
-
-1. 啟用調試日誌
-```bash
-export MCP_LOG_LEVEL=debug
-```
-
-2. 使用調試模式運行
-```bash
-bash -x bin/mcp command
+# 測試失敗
+export NODE_ENV=test
+./test/run.sh  # 重新運行測試
 ```
 
 ## 貢獻指南
 
 1. Fork 項目
 2. 創建功能分支
-3. 提交更改
-4. 推送到分支
-5. 創建 Pull Request
+3. 遵循代碼規範
+4. 添加測試用例
+5. 提交 Pull Request
 
 ## 聯繫方式
 
