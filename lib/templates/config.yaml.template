@@ -1,0 +1,11 @@
+# MCP CLI Manager Configuration
+
+servers:
+  # GitHub MCP Server
+  github:
+    name: github
+    command: npx 
+    args:
+      - "@modelcontextprotocol/server-github"
+
+# Add more servers below 
