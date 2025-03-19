@@ -1,0 +1,57 @@
+#!/usr/bin/env zsh
+#
+# MCP CLI Manager
+# Main entry point for MCP CLI Manager
+#
+# Dependencies:
+#   - zsh
+#   - jq
+#   - screen
+#
+# Usage:
+#   ./mcp <command> [args...]
+
+# Enable debug output if requested
+[[ -n "${DEBUG:-}" ]] && set -x
+
+# 設置腳本目錄
+SCRIPT_DIR="${0:A:h}"
+LIB_DIR="${SCRIPT_DIR}/core"
+
+# 載入模組
+source "${LIB_DIR}/server.zsh"
+
+# 設置配置文件路徑
+CONFIG_FILE="${HOME}/.cursor/mcp.json"
+RUNTIME_DIR="${HOME}/.cursor/run"
+
+# 確保運行時目錄存在
+mkdir -p "${RUNTIME_DIR}"
+
+# 主命令處理
+case "$1" in
+    list)
+        list_server
+        ;;
+    start)
+        if [[ -z "$2" ]]; then
+            echo "錯誤: 請指定服務名稱" >&2
+            exit 1
+        fi
+        start_server "$2"
+        ;;
+    stop)
+        if [[ -z "$2" ]]; then
+            echo "錯誤: 請指定服務名稱" >&2
+            exit 1
+        fi
+        stop_server "$2"
+        ;;
+    version)
+        echo "MCP CLI Manager v1.0.0"
+        ;;
+    help|*)
+        echo "用法: mcp {list|start|stop|version} [服務名稱]" >&2
+        exit 1
+        ;;
+esac

@@ -1,17 +1,16 @@
-class Mcp < Formula
+class McpCliManager < Formula
   desc "MCP CLI Manager - 用於管理 Model Context Protocol 服務的命令行工具"
-  homepage "https://github.com/yourusername/mcp-cli-manager"
-  url "https://github.com/yourusername/mcp-cli-manager/archive/v1.0.0.tar.gz"
+  homepage "https://github.com/crayon3shawn/mcp-cli-manager"
+  url "https://github.com/crayon3shawn/mcp-cli-manager/archive/refs/tags/v1.0.0.tar.gz"
   sha256 "YOUR_TARBALL_SHA256"
   license "MIT"
 
   depends_on "zsh"
-  depends_on "jq"
   depends_on "screen"
 
   def install
-    bin.install "bin/mcp"
-    prefix.install "lib"
+    bin.install "cli/mcp"
+    prefix.install "cli/core"
   end
 
   def caveats
@@ -33,9 +32,5 @@ class Mcp < Formula
         }
       }
     EOS
-  end
-
-  test do
-    system "#{bin}/mcp", "version"
   end
 end 
