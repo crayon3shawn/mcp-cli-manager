@@ -243,5 +243,5 @@ export NODE_ENV=test
 ## 聯繫方式
 
 - Issues: GitHub Issues
-- 討論: GitHub Discussions
-- 郵件: your-email@example.com 
+Github Issues 或是
+- 郵件: crayon3shawn@example.com 
