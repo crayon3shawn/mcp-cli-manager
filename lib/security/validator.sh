@@ -1,37 +1,34 @@
 #!/bin/bash
 #
-# 檔案名稱: validator.sh
-# 描述: 安全性驗證模組，用於驗證命令執行、檔案權限和環境安全性
-# 作者: MCP CLI Manager Team
-# 建立日期: 2024-03-19
-# 最後更新: 2024-03-19
+# Security validator module for MCP CLI Manager
+# Validates command execution, file permissions and environment security
 #
-# 使用方式:
+# Dependencies:
+#   - bash >= 4.0
+#
+# Usage:
 #   ./validator.sh <command> [args]
 #
-# 命令:
-#   validate-command <command> [args] - 驗證命令是否允許執行
-#   validate-file-permissions <file> [perms] - 驗證檔案權限
-#   validate-env-security - 驗證環境安全性設定
-#   add-allowed-command <command> [description] - 新增允許的命令
-#   remove-allowed-command <command> - 移除允許的命令
-#   list-allowed-commands - 列出所有允許的命令
+# Commands:
+#   validate-command <command> [args] - Validate if command is allowed to execute
+#   validate-file-permissions <file> [perms] - Validate file permissions
+#   validate-env-security - Validate environment security settings
+#   add-allowed-command <command> [description] - Add allowed command
+#   remove-allowed-command <command> - Remove allowed command
+#   list-allowed-commands - List all allowed commands
 #
-# 返回值:
-#   0: 驗證成功
-#   1: 驗證失敗
-#   2: 參數錯誤
+# Return values:
+#   0: Validation successful
+#   1: Validation failed
+#   2: Parameter error
 #
-# 依賴:
-#   - core/env.sh: 環境變數設定
-#   - core/log.sh: 日誌功能
 #
-# 安全注意事項:
-#   - 此模組包含敏感的安全驗證邏輯
-#   - 修改時需經過安全審查
-#   - 確保檔案權限設定正確（建議：644）
+# Security considerations:
+#   - This module contains sensitive security validation logic
+#   - Changes need to be reviewed by security team
+#   - Ensure file permissions are set correctly (recommended: 644)
 #
-# 範例:
+# Example:
 #   ./validator.sh validate-command "node" "script.js"
 #   ./validator.sh validate-file-permissions "config.yaml" 644
 #   ./validator.sh validate-env-security
@@ -60,16 +57,41 @@ DANGEROUS_PATTERNS=(
     ":(){:|:&};:"
     "dd if=/dev/zero"
     "dd if=/dev/random"
+    "chmod -R 777"
+    "sudo rm"
+    "|[\s]*rm"
+    ";[\s]*rm"
+    "&[\s]*rm"
+    "$(.*)"
+    "`.*`"
+    ">[\s]*/etc"
+    "2>[\s]*/dev/null"
 )
 
-# 函數名稱: is_command_allowed
-# 描述: 檢查命令是否在允許清單中
-# 參數:
-#   $1: 要檢查的命令
-# 返回值:
-#   0: 命令允許執行
-#   1: 命令不允許執行
-# 使用範例:
+# Define sensitive directories
+SENSITIVE_DIRS=(
+    "/etc"
+    "/var"
+    "/bin"
+    "/sbin"
+    "/lib"
+    "/usr/bin"
+    "/usr/sbin"
+    "/usr/lib"
+    "/boot"
+    "/dev"
+    "/proc"
+    "/sys"
+)
+
+# Function name: is_command_allowed
+# Description: Check if a command is in the allowed list
+# Parameters:
+#   $1: Command to check
+# Returns:
+#   0: Command is allowed
+#   1: Command is not allowed
+# Example:
 #   is_command_allowed "node"
 is_command_allowed() {
     local cmd=$1
@@ -86,17 +108,15 @@ is_command_allowed() {
     return 1
 }
 
-# 函數名稱: get_command_description
-# 描述: 獲取命令的描述信息
-# 參數:
-#   $1: 命令名稱
-# 返回值:
-#   0: 成功獲取描述
-#   1: 命令不存在
-# 輸出:
-#   命令的描述文字或 "Unknown command"
-# 使用範例:
-#   description=$(get_command_description "node")
+# Function name: get_command_description
+# Description: Get the description of an allowed command
+# Parameters:
+#   $1: Command name
+# Returns:
+#   Command description (printed to stdout)
+#   Empty string if command not found
+# Example:
+#   get_command_description "node"
 get_command_description() {
     local cmd=$1
     local base_cmd
@@ -116,19 +136,99 @@ get_command_description() {
     return 1
 }
 
-# 函數名稱: validate_command
-# 描述: 驗證命令的安全性，包括白名單檢查和危險模式檢測
-# 參數:
-#   $1: 要執行的命令
-#   $2: 命令參數（可選）
-# 返回值:
-#   0: 驗證通過
-#   1: 驗證失敗
-# 安全檢查:
-#   - 命令是否在白名單中
-#   - 是否包含危險模式
-#   - 命令是否存在於系統中
-# 使用範例:
+# Function name: detect_command_injection
+# Description: Detect command injection attempts in a command string
+# Parameters:
+#   $1: Command string to check
+# Returns:
+#   0: No injection detected
+#   1: Possible injection detected
+# Example:
+#   detect_command_injection "ls; rm -rf /"
+detect_command_injection() {
+    local cmd=$1
+    
+    # Check shell operators
+    if [[ "$cmd" =~ [';|&`] ]]; then
+        log_error "Command injection detected" \
+                 "Command contains shell operators: $cmd" \
+                 "Remove shell operators like ; | & ` from the command"
+        return 1
+    fi
+    
+    # Check command substitutions
+    if [[ "$cmd" =~ \$\([^\)]*\) || "$cmd" =~ \$\{[^\}]*\} ]]; then
+        log_error "Command injection detected" \
+                 "Command contains shell expansions: $cmd" \
+                 "Remove command substitutions like \$(cmd) or \${var} from the command"
+        return 1
+    fi
+    
+    # Check redirections
+    if [[ "$cmd" =~ [\<\>]{1,2} ]]; then
+        log_error "Command injection detected" \
+                 "Command contains redirections: $cmd" \
+                 "Remove redirections like > or < from the command"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Function name: check_path_traversal
+# Description: Detect path traversal attempts in a file path
+# Parameters:
+#   $1: Path to check
+# Returns:
+#   0: Path is safe
+#   1: Path traversal detected
+# Example:
+#   check_path_traversal "../etc/passwd"
+check_path_traversal() {
+    local path=$1
+    
+    # Check relative path traversal
+    if [[ "$path" =~ (\.\./|\.\.) ]]; then
+        log_error "Path traversal detected" \
+                 "Path contains relative path traversal: $path" \
+                 "Use absolute paths or remove .. from the path"
+        return 1
+    fi
+    
+    # Check sensitive directory access
+    for dir in "${SENSITIVE_DIRS[@]}"; do
+        if [[ "$path" == "$dir"* ]]; then
+            log_error "Accessing sensitive directory" \
+                     "Path trying to access protected directory: $dir" \
+                     "Do not access system directories"
+            return 1
+        fi
+    done
+    
+    # Check absolute path
+    if [[ "$path" == /* ]] && [[ "$path" != "${MCP_CONFIG_DIR}"* ]] && \
+       [[ "$path" != "${MCP_RUNTIME_DIR}"* ]] && [[ "$path" != "${MCP_LOG_DIR}"* ]]; then
+        log_warn "Accessing absolute path outside MCP directories" \
+                "Path: $path" \
+                "Prefer using paths within MCP_CONFIG_DIR, MCP_RUNTIME_DIR, or MCP_LOG_DIR"
+    fi
+    
+    return 0
+}
+
+# Function name: validate_command
+# Description: Validate command security, including whitelist check and dangerous pattern detection
+# Parameters:
+#   $1: Command to execute
+#   $2: Command arguments (optional)
+# Returns:
+#   0: Validation passed
+#   1: Validation failed
+# Security checks:
+#   - Command is in whitelist
+#   - No dangerous patterns
+#   - Command exists in system
+# Example:
 #   validate_command "node" "script.js"
 validate_command() {
     local command=$1
@@ -156,8 +256,13 @@ validate_command() {
         return 1
     fi
     
-    # Check for dangerous patterns in command and args
+    # Check command injection
     local full_command="$command $args"
+    if ! detect_command_injection "$full_command"; then
+        return 1
+    fi
+    
+    # Check for dangerous patterns in command and args
     for pattern in "${DANGEROUS_PATTERNS[@]}"; do
         if [[ "$full_command" == *"$pattern"* ]]; then
             log_error "Dangerous command pattern detected" \
@@ -178,19 +283,24 @@ validate_command() {
     return 0
 }
 
-# 函數名稱: validate_file_permissions
-# 描述: 驗證檔案權限是否符合安全要求
-# 參數:
-#   $1: 檔案路徑
-#   $2: 要求的權限（預設：644）
-# 返回值:
-#   0: 權限符合要求
-#   1: 權限不符合要求或檔案不存在
-# 使用範例:
+# Function name: validate_file_permissions
+# Description: Validate if file permissions meet security requirements
+# Parameters:
+#   $1: File path
+#   $2: Required permissions (default: 644)
+# Returns:
+#   0: Permissions meet requirements
+#   1: Permissions do not meet requirements or file does not exist
+# Example:
 #   validate_file_permissions "config.yaml" 644
 validate_file_permissions() {
     local file=$1
     local required_perms=${2:-644}
+    
+    # Check path traversal
+    if ! check_path_traversal "$file"; then
+        return 1
+    fi
     
     # Check if file exists
     if [ ! -f "$file" ]; then
@@ -215,18 +325,14 @@ validate_file_permissions() {
     return 0
 }
 
-# 函數名稱: validate_env_security
-# 描述: 驗證環境安全性設定，包括目錄權限和配置檔案權限
-# 參數:
-#   無
-# 返回值:
-#   0: 所有檢查通過
-#   非0: 發現的問題數量
-# 檢查項目:
-#   - 運行時目錄權限
-#   - PID 目錄權限
-#   - 配置檔案權限
-# 使用範例:
+# Function name: validate_env_security
+# Description: Validate environment security settings
+# Parameters:
+#   None
+# Returns:
+#   0: Environment is secure
+#   1: Security issues detected
+# Example:
 #   validate_env_security
 validate_env_security() {
     local issues=0
@@ -270,16 +376,16 @@ validate_env_security() {
     return $issues
 }
 
-# 函數名稱: add_allowed_command
-# 描述: 將新的命令添加到允許清單中
-# 參數:
-#   $1: 命令名稱
-#   $2: 命令描述（可選，預設："Custom command"）
-# 返回值:
-#   0: 添加成功
-#   1: 命令已存在
-# 使用範例:
-#   add_allowed_command "npm" "Node.js package manager"
+# Function name: add_allowed_command
+# Description: Add a command to the allowed commands list
+# Parameters:
+#   $1: Command to add
+#   $2: Command description (optional)
+# Returns:
+#   0: Command added successfully
+#   1: Failed to add command
+# Example:
+#   add_allowed_command "npm" "Node package manager"
 add_allowed_command() {
     local command=$1
     local description=${2:-"Custom command"}
@@ -297,14 +403,14 @@ add_allowed_command() {
     log_success "Added command to whitelist: $command ($description)"
 }
 
-# 函數名稱: remove_allowed_command
-# 描述: 從允許清單中移除命令
-# 參數:
-#   $1: 要移除的命令名稱
-# 返回值:
-#   0: 移除成功
-#   1: 命令不存在於清單中
-# 使用範例:
+# Function name: remove_allowed_command
+# Description: Remove a command from the allowed commands list
+# Parameters:
+#   $1: Command to remove
+# Returns:
+#   0: Command removed successfully
+#   1: Failed to remove command or command not found
+# Example:
 #   remove_allowed_command "npm"
 remove_allowed_command() {
     local command=$1
@@ -332,15 +438,13 @@ remove_allowed_command() {
     fi
 }
 
-# 函數名稱: list_allowed_commands
-# 描述: 列出所有允許執行的命令及其描述
-# 參數:
-#   無
-# 返回值:
-#   0: 總是成功
-# 輸出格式:
-#   命令名稱: 描述
-# 使用範例:
+# Function name: list_allowed_commands
+# Description: List all allowed commands with their descriptions
+# Parameters:
+#   None
+# Returns:
+#   0: Always succeeds
+# Example:
 #   list_allowed_commands
 list_allowed_commands() {
     log_info "Allowed commands:"

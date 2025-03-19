@@ -21,7 +21,6 @@ declare -A PROCESS_GROUPS
 
 #######################################
 # Check Node.js environment
-# Verifies Node.js installation and version
 #######################################
 check_node_env() {
     local required_version=${1:-18}
@@ -49,8 +48,6 @@ check_node_env() {
 
 #######################################
 # Find process by server name
-# Arguments:
-#   $1 - Server name
 # Returns:
 #   Process ID if found, empty string otherwise
 #######################################
@@ -81,8 +78,6 @@ find_process() {
 
 #######################################
 # Check if process is running
-# Arguments:
-#   $1 - Process ID
 #######################################
 is_process_running() {
     local pid=$1
@@ -91,9 +86,6 @@ is_process_running() {
 
 #######################################
 # Monitor process status
-# Arguments:
-#   $1 - Server name
-#   $2 - Process ID
 #######################################
 monitor_process() {
     local server_name=$1
@@ -113,8 +105,6 @@ monitor_process() {
 
 #######################################
 # Clean up process resources
-# Arguments:
-#   $1 - Server name
 #######################################
 cleanup_process() {
     local server_name=$1
@@ -124,9 +114,6 @@ cleanup_process() {
 
 #######################################
 # Stop process with timeout
-# Arguments:
-#   $1 - Process ID
-#   $2 - Timeout in seconds (default: 30)
 #######################################
 stop_process() {
     local pid=$1
@@ -160,11 +147,6 @@ stop_process() {
 
 #######################################
 # Create process group for server
-# Arguments:
-#   $1 - Server name
-#   $2 - Process ID
-# Returns:
-#   None
 #######################################
 create_process_group() {
     local server_name=$1
@@ -178,22 +160,41 @@ create_process_group() {
 
 #######################################
 # Stop process group
-# Arguments:
-#   $1 - Server name
-#   $2 - Process ID
-# Returns:
-#   0 if process group stopped
-#   1 if failed to stop process group
 #######################################
 stop_process_group() {
     local server_name=$1
     local pid=$2
     
     if [ -n "${PROCESS_GROUPS[$server_name]:-}" ]; then
-        # Send signal to entire process group
-        kill -"${signals[$i]}" "-$pid" 2>/dev/null || continue
-        unset PROCESS_GROUPS[$server_name]
-        return 0
+        # 使用與 stop_process 相同的信號列表
+        local signals=("TERM" "INT" "KILL")
+        local wait_times=(5 3 2)
+        
+        for i in "${!signals[@]}"; do
+            local signal="${signals[$i]}"
+            local wait="${wait_times[$i]}"
+            
+            # 發送信號到整個進程組
+            log_debug "Sending SIG$signal to process group -$pid"
+            kill -"$signal" "-$pid" 2>/dev/null || true
+            
+            # 等待進程組終止
+            local counter=0
+            while is_process_running "$pid" && [ "$counter" -lt "$wait" ]; do
+                sleep 1
+                counter=$((counter + 1))
+            done
+            
+            if ! is_process_running "$pid"; then
+                unset PROCESS_GROUPS[$server_name]
+                return 0
+            fi
+        done
+        
+        # 所有信號都發送失敗，記錄錯誤
+        log_error "Failed to stop process group" \
+                 "Server: $server_name, PID: $pid" \
+                 "Try stopping it manually with: kill -9 -$pid"
     fi
     
     return 1
@@ -201,8 +202,6 @@ stop_process_group() {
 
 #######################################
 # Start server
-# Arguments:
-#   $1 - Server name
 #######################################
 start_server() {
     local server_name=$1
@@ -278,8 +277,6 @@ start_server() {
 
 #######################################
 # Stop server
-# Arguments:
-#   $1 - Server name
 #######################################
 stop_server() {
     local server_name=$1
@@ -315,8 +312,6 @@ stop_server() {
 
 #######################################
 # Get server status
-# Arguments:
-#   $1 - Server name
 #######################################
 get_server_status() {
     local server_name=$1
@@ -332,8 +327,6 @@ get_server_status() {
 
 #######################################
 # Restart server
-# Arguments:
-#   $1 - Server name
 #######################################
 restart_server() {
     local server_name=$1

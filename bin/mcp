@@ -1,13 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 
 # Import modules
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/core/env.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/core/log.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/config/loader.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/process/manager.sh"
-
-# Version
-VERSION="1.0.0"
+SCRIPT_DIR="${0:A:h}"
+source "${SCRIPT_DIR}/../lib/core/env.zsh"
+source "${SCRIPT_DIR}/../lib/core/log.zsh"
+source "${SCRIPT_DIR}/../lib/config/loader.zsh"
+source "${SCRIPT_DIR}/../lib/process/manager.zsh"
 
 # Print usage
 print_usage() {
@@ -15,20 +13,20 @@ print_usage() {
 Usage: $(basename "$0") <command> [options]
 
 Commands:
-  init                    初始化配置文件
-  list                    列出所有已配置的服務器
-  get <server>           顯示服務器詳細配置
-  add <server>           添加新的服務器配置
-  remove <server>        移除服務器配置
-  import <file>          導入配置文件
-  start <server>         啟動服務器
-  stop <server>          停止服務器
-  restart <server>       重啟服務器
-  status <server>        查看服務器狀態
+  init                    Initialize configuration files
+  list                    List all configured servers
+  get <server>            Display server configuration details
+  add <server>            Add a new server configuration
+  remove <server>         Remove server configuration
+  import <file>           Import configuration file
+  start <server>          Start server
+  stop <server>           Stop server
+  restart <server>        Restart server
+  status <server>         Check server status
 
 Options:
-  -h, --help            顯示幫助信息
-  -v, --version         顯示版本信息
+  -h, --help            Show help information
+  -v, --version         Show version information
 EOF
 }
 
@@ -41,7 +39,7 @@ case "${1:-}" in
         list_servers
         ;;
     "get")
-        if [ -z "${2:-}" ]; then
+        if [[ -z "${2:-}" ]]; then
             log_error "Server name required" \
                      "Usage: $(basename "$0") get <server>" \
                      "Use '$(basename "$0") list' to view available servers"
@@ -50,7 +48,7 @@ case "${1:-}" in
         get_server_config "$2"
         ;;
     "add")
-        if [ -z "${2:-}" ]; then
+        if [[ -z "${2:-}" ]]; then
             log_error "Server name required" \
                      "Usage: $(basename "$0") add <server>" \
                      "Example: $(basename "$0") add my-server"
@@ -59,7 +57,7 @@ case "${1:-}" in
         add_server_config "$2"
         ;;
     "remove")
-        if [ -z "${2:-}" ]; then
+        if [[ -z "${2:-}" ]]; then
             log_error "Server name required" \
                      "Usage: $(basename "$0") remove <server>" \
                      "Use '$(basename "$0") list' to view available servers"
@@ -68,7 +66,7 @@ case "${1:-}" in
         remove_server_config "$2"
         ;;
     "import")
-        if [ -z "${2:-}" ]; then
+        if [[ -z "${2:-}" ]]; then
             log_error "Configuration file path required" \
                      "Usage: $(basename "$0") import <file>" \
                      "Example: $(basename "$0") import ./my-config.json"
@@ -77,7 +75,7 @@ case "${1:-}" in
         import_config "$2"
         ;;
     "start")
-        if [ -z "${2:-}" ]; then
+        if [[ -z "${2:-}" ]]; then
             log_error "Server name required" \
                      "Usage: $(basename "$0") start <server>" \
                      "Use '$(basename "$0") list' to view available servers"
@@ -86,7 +84,7 @@ case "${1:-}" in
         start_server "$2"
         ;;
     "stop")
-        if [ -z "${2:-}" ]; then
+        if [[ -z "${2:-}" ]]; then
             log_error "Server name required" \
                      "Usage: $(basename "$0") stop <server>" \
                      "Use '$(basename "$0") list' to view available servers"
@@ -95,7 +93,7 @@ case "${1:-}" in
         stop_server "$2"
         ;;
     "restart")
-        if [ -z "${2:-}" ]; then
+        if [[ -z "${2:-}" ]]; then
             log_error "Server name required" \
                      "Usage: $(basename "$0") restart <server>" \
                      "Use '$(basename "$0") list' to view available servers"
@@ -104,26 +102,28 @@ case "${1:-}" in
         restart_server "$2"
         ;;
     "status")
-        if [ -z "${2:-}" ]; then
-            log_error "Server name required" \
-                     "Usage: $(basename "$0") status <server>" \
-                     "Use '$(basename "$0") list' to view available servers"
-            exit 1
+        if [[ -z "${2:-}" ]]; then
+            check_all_servers
+        else
+            check_server_status "$2"
         fi
-        get_server_status "$2"
         ;;
-    "-h"|"--help")
+    "--help"|"-h")
         print_usage
         exit 0
         ;;
-    "-v"|"--version")
-        echo "mcp-cli-manager version $VERSION"
+    "--version"|"-v")
+        echo "MCP CLI Manager v${VERSION}"
         exit 0
         ;;
-    *)
-        log_error "Unknown command: ${1:-}" \
-                 "Use '$(basename "$0") --help' to view available commands" \
-                 "Or '$(basename "$0") list' to view configured servers"
+    "")
+        print_usage
         exit 1
         ;;
-esac 
+    *)
+        log_error "Unknown command: $1" \
+                 "Command not recognized" \
+                 "Use '$(basename "$0") --help' to see available commands"
+        exit 1
+        ;;
+esac

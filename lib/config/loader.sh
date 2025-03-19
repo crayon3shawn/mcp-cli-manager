@@ -1,36 +1,20 @@
 #!/bin/bash
 #
-# 檔案名稱: loader.sh
-# 描述: MCP CLI Manager 的配置載入模組
-#      負責配置檔案的載入、解析和驗證
-# 作者: MCP CLI Manager Team
-# 建立日期: 2024-03-19
-# 最後更新: 2024-03-19
+# Configuration loader module for MCP CLI Manager
+# Handles loading, parsing and validating configuration files
 #
-# 使用方式:
-#   source ./loader.sh
-#
-# 環境要求:
+# Dependencies:
 #   - bash >= 4.0
+#   - ../core/env.sh: Environment variables
+#   - ../core/log.sh: Logging functionality 
 #
-# 依賴:
-#   - ../core/env.sh: 環境變數設定
-#   - ../core/log.sh: 日誌功能
-#
-# 配置檔案:
-#   - config.yaml: 主要配置檔案
-#   - servers.yaml: 伺服器配置檔案
-#   - .env: 環境變數配置
-#
-# 目錄結構:
-#   - $XDG_CONFIG_HOME/mcp-cli-manager/: 配置目錄
-#   - $XDG_DATA_HOME/mcp-cli-manager/: 資料目錄
-#   - $XDG_CACHE_HOME/mcp-cli-manager/: 快取目錄
+# Usage:
+#   source ./loader.sh
 
 set -euo pipefail
 IFS=$'\n\t'
 
-# Import core modules
+# Get script directory and load dependencies
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../core/env.sh"
 source "${SCRIPT_DIR}/../core/log.sh"
@@ -47,27 +31,15 @@ CACHE_DIR="$XDG_CACHE_HOME/mcp-cli-manager"
 
 # Configuration file paths
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
-SERVERS_FILE="$CONFIG_DIR/servers.yaml"
+SERVERS_FILE="$CONFIG_FILE"
 ENV_FILE="$CONFIG_DIR/.env"
 BACKUP_DIR="$DATA_DIR/backups"
 
 # Array to store parsed configuration
 declare -A CONFIG_VARS
 
-# 函數名稱: init_config_dirs
-# 描述: 初始化配置目錄結構
-# 功能:
-#   - 創建必要的目錄
-#   - 設置適當的權限
-# 目錄:
-#   - 配置目錄 (CONFIG_DIR)
-#   - 資料目錄 (DATA_DIR)
-#   - 快取目錄 (CACHE_DIR)
-#   - 備份目錄 (BACKUP_DIR)
-# 返回值:
-#   0: 初始化成功
-# 權限設定:
-#   - 目錄權限: 700 (只有擁有者可存取)
+# Initialize configuration directories
+# Creates necessary directory structure with appropriate permissions
 init_config_dirs() {
     local dirs=(
         "$CONFIG_DIR"
@@ -91,7 +63,73 @@ init_config_dirs() {
 # Creates necessary config files if they don't exist
 #######################################
 create_config() {
-    // ... existing code ...
+    # 確保配置目錄存在
+    init_config_dirs
+    
+    # 創建配置文件，如果不存在
+    if [ ! -f "$CONFIG_FILE" ]; then
+        cat > "$CONFIG_FILE" << EOF
+# MCP CLI Manager 全局配置
+# 取消註釋以啟用相應功能
+
+logging:
+  level: info
+  format: text
+  file: mcp.log
+  max_size: 10MB
+  max_files: 5
+
+process:
+  find_method: pgrep
+  name_pattern: "%s"
+  start_timeout: 30s
+  stop_timeout: 30s
+  health_check_interval: 5s
+  stop_signals:
+    - signal: SIGTERM
+      wait: 5s
+    - signal: SIGKILL
+      wait: 0s
+EOF
+        chmod 644 "$CONFIG_FILE"
+        log_info "Created default configuration file: $CONFIG_FILE"
+    fi
+    
+    # 創建服務器配置文件
+    if [ ! -f "$SERVERS_FILE" ] || [ "$CONFIG_FILE" != "$SERVERS_FILE" ]; then
+        cat > "$SERVERS_FILE" << EOF
+# MCP CLI Manager 服務器配置
+# 要啟用服務器，請移除 enabled: false 的註釋
+
+servers:
+  example-server:
+    enabled: false  # 取消註釋以啟用服務器
+    name: "Example Server"
+    description: "這是一個示例服務器"
+    command: "node server.js"
+    working_dir: "."
+    env:
+      NODE_ENV: "production"
+EOF
+        chmod 644 "$SERVERS_FILE"
+        log_info "Created default servers configuration file: $SERVERS_FILE"
+    fi
+    
+    # 創建環境變量文件
+    if [ ! -f "$ENV_FILE" ]; then
+        cat > "$ENV_FILE" << EOF
+# MCP CLI Manager 環境變量
+# 取消註釋並填入您的 API 密鑰
+
+#ANTHROPIC_API_KEY=your_key_here
+#OPENAI_API_KEY=your_key_here
+#GITHUB_API_TOKEN=your_token_here
+EOF
+        chmod 600 "$ENV_FILE"
+        log_info "Created environment variables file: $ENV_FILE"
+    fi
+    
+    return 0
 }
 
 #######################################
@@ -99,23 +137,49 @@ create_config() {
 # Prompts user to overwrite existing config files
 #######################################
 init_config() {
-    // ... existing code ...
+    # 檢查配置文件是否存在
+    local config_exists=0
+    if [ -f "$CONFIG_FILE" ] || [ -f "$SERVERS_FILE" ] || [ -f "$ENV_FILE" ]; then
+        config_exists=1
+    fi
+    
+    # 如果配置文件存在，詢問是否覆蓋
+    if [ $config_exists -eq 1 ]; then
+        read -p "Configuration files already exist. Do you want to overwrite them? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Keeping existing configuration files."
+            return 0
+        fi
+        
+        # 備份現有配置
+        local backup_dir="$BACKUP_DIR/$(date +%Y%m%d_%H%M%S)"
+        mkdir -p "$backup_dir"
+        [ -f "$CONFIG_FILE" ] && cp "$CONFIG_FILE" "$backup_dir/"
+        [ -f "$SERVERS_FILE" ] && [ "$CONFIG_FILE" != "$SERVERS_FILE" ] && cp "$SERVERS_FILE" "$backup_dir/"
+        [ -f "$ENV_FILE" ] && cp "$ENV_FILE" "$backup_dir/"
+        
+        log_info "Existing configuration backed up to: $backup_dir"
+    fi
+    
+    # 創建新的配置文件
+    create_config
+    
+    log_success "Configuration initialized successfully!"
+    log_info "Edit the configuration files to configure your servers:"
+    log_info "  $CONFIG_FILE"
+    [ "$CONFIG_FILE" != "$SERVERS_FILE" ] && log_info "  $SERVERS_FILE"
+    log_info "  $ENV_FILE"
+    
+    return 0
 }
 
-# 函數名稱: parse_yaml
-# 描述: 解析 YAML 格式的配置檔案
-# 參數:
-#   $1: YAML 檔案路徑
-#   $2: 變數名稱前綴（可選）
-# 返回值:
-#   0: 解析成功
-#   1: 檔案不存在或解析失敗
-# 功能:
-#   - 支援巢狀結構
-#   - 支援陣列
-#   - 自動移除引號
-# 使用範例:
-#   parse_yaml "config.yaml" "config_"
+# Parse YAML configuration file
+# Arguments:
+#   $1 - YAML file path
+#   $2 - Variable name prefix (optional)
+# Returns:
+#   0 if successful, 1 if file not found or parsing failed
 parse_yaml() {
     local file=$1
     local prefix=${2:-}
@@ -212,21 +276,12 @@ parse_yaml() {
     return 0
 }
 
-# 函數名稱: get_server_config
-# 描述: 獲取指定伺服器的配置信息
-# 參數:
-#   $1: 伺服器名稱
-# 返回值:
-#   0: 成功獲取配置
-#   1: 配置不存在或無效
-# 檢查項目:
-#   - 配置檔案是否存在
-#   - 伺服器配置是否存在
-#   - 伺服器是否啟用
-# 輸出格式:
-#   key=value（每行一個配置項）
-# 使用範例:
-#   get_server_config "server-name"
+# Get server configuration
+# Arguments:
+#   $1 - Server name
+# Returns:
+#   0 if configuration retrieved successfully
+#   1 if configuration not found or invalid
 get_server_config() {
     local server_name=$1
     local key

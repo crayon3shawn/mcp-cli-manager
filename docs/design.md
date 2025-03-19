@@ -27,18 +27,28 @@
 - No GUI interface
 
 ## Command Structure
-```
+```zsh
 mcp <command> [options]
 
 Commands:
-  start   <name>     Start a process
-  stop    <name>     Stop a process
-  restart <name>     Restart a process
-  status  [name]     Show process status
-  list              List all processes
+  init                    Initialize configuration files
+  list                    List all configured servers
+  get <server>            Display server configuration details
+  start <server>          Start server
+  stop <server>           Stop server
+  restart <server>        Restart server
+  status <server>         Check server status
 ```
+
+## Technical Details
+- Written in zsh (Z shell)
+- Modular design with separated concerns
+- File-based configuration using YAML
+- Environment variable integration
 
 ## Security Considerations
 - No root privilege requirements
 - Process isolation
-- Safe configuration handling 
+- Safe configuration handling
+- Command injection prevention
+- Path traversal detection 
