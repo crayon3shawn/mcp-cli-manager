@@ -1,4 +1,4 @@
-name: Update Homebrew Tap
+name: Update Homebrew
 
 on:
   release:
@@ -8,34 +8,48 @@ jobs:
   update-homebrew:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout mcp-cli-manager
-        uses: actions/checkout@v3
-        with:
-          repository: crayon3shawn/mcp-cli-manager
-          ref: ${{ github.event.release.tag_name }}
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Checkout homebrew-tap
         uses: actions/checkout@v3
         with:
           repository: crayon3shawn/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           path: homebrew-tap
-          token: ${{ secrets.TAP_PAT }}
 
-      - name: Update Formula
+      - name: Update formula
+        working-directory: homebrew-tap
         run: |
-          cd homebrew-tap/Formula
-          VERSION=${{ github.event.release.tag_name }}
-          URL="https://github.com/crayon3shawn/mcp-cli-manager/archive/refs/tags/${VERSION}.tar.gz"
-          SHA256=$(curl -sL $URL | shasum -a 256 | cut -d' ' -f1)
-          
-          sed -i '' "s|url \".*\"|url \"$URL\"|" mcp-cli-manager.rb
-          sed -i '' "s|sha256 \".*\"|sha256 \"$SHA256\"|" mcp-cli-manager.rb
+          cat > Formula/mcp-cli-manager.rb << EOL
+          class McpCliManager < Formula
+            desc "A command-line tool for managing Model Context Protocol (MCP) servers"
+            homepage "https://github.com/crayon3shawn/mcp-cli-manager"
+            url "https://github.com/crayon3shawn/mcp-cli-manager/archive/v${VERSION}.tar.gz"
+            sha256 "$(curl -sL https://github.com/crayon3shawn/mcp-cli-manager/archive/v${VERSION}.tar.gz | sha256sum | cut -d' ' -f1)"
+            version "${VERSION}"
+            
+            depends_on "node"
+            
+            def install
+              system "npm", "install", *Language::Node.std_npm_install_args(libexec)
+              bin.install_symlink Dir["#{libexec}/bin/*"]
+            end
+            
+            test do
+              system "#{bin}/mcp", "--version"
+            end
+          end
+          EOL
 
       - name: Commit and push changes
+        working-directory: homebrew-tap
         run: |
-          cd homebrew-tap
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
           git add Formula/mcp-cli-manager.rb
-          git commit -m "Update mcp-cli-manager to ${VERSION}"
+          git commit -m "update mcp-cli-manager to ${VERSION}"
           git push 
