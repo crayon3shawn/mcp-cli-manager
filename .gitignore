@@ -12,6 +12,10 @@ package-lock.json
 .vscode/
 *.swp
 *.swo
+.cursor/
+
+# GitHub Actions
+.github/workflows/update-homebrew.yml
 
 # OS generated files
 .DS_Store

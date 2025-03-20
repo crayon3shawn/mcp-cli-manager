@@ -1,11 +1,17 @@
 {
   "name": "mcp-cli-manager",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A command-line tool for managing Model Context Protocol (MCP) servers",
   "main": "bin/mcp",
   "bin": {
     "mcp": "./bin/mcp"
   },
+  "files": [
+    "bin/mcp",
+    "lib/**/*.sh",
+    "scripts/install.sh",
+    "config.yaml.example"
+  ],
   "scripts": {
     "start": "./bin/mcp",
     "test": "bats test/*.bats",
@@ -37,11 +43,6 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
-  },
-  "dependencies": {
-    "commander": "^11.1.0",
-    "chalk": "^5.3.0",
-    "inquirer": "^9.2.15"
   },
   "devDependencies": {
     "bats": "^1.10.0"
