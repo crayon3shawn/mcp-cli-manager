@@ -106,7 +106,8 @@ servers:
     command: /opt/homebrew/bin/mcp-server-github
   sequential-thinking:
     type: npx
-    command: npx -y @modelcontextprotocol/server-sequential-thinking
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-sequential-thinking"]
 ```
 
 ## Development
