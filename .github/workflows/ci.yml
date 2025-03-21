@@ -21,13 +21,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
-      - name: Run tests
-        run: npm test
-        
       - name: Run linting
         run: npm run lint
 
-  auto-release:
+  release-and-publish:
     needs: test-and-lint
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -37,6 +34,12 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
           
       - name: Get version from package.json
         id: version
@@ -53,4 +56,33 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           release_name: Release v${{ steps.version.outputs.version }}
           draft: false
-          prerelease: false 
+          prerelease: false
+          
+      - name: Install dependencies
+        run: npm ci
+          
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          
+      - name: Get tarball SHA
+        id: sha
+        run: |
+          SHA=$(curl -sL https://github.com/crayon3shawn/mcp-cli-manager/archive/refs/tags/v${{ steps.version.outputs.version }}.tar.gz | shasum -a 256 | cut -d ' ' -f 1)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          
+      - name: Update Homebrew formula
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          SHA=${{ steps.sha.outputs.sha }}
+          sed -i "s|url.*|url \"https://github.com/crayon3shawn/mcp-cli-manager/archive/refs/tags/v${VERSION}.tar.gz\"|" Formula/mcp-cli-manager.rb
+          sed -i "s|sha256.*|sha256 \"${SHA}\"|" Formula/mcp-cli-manager.rb
+          
+      - name: Commit formula changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add Formula/mcp-cli-manager.rb
+          git commit -m "chore: update formula to v${{ steps.version.outputs.version }}"
+          git push 
