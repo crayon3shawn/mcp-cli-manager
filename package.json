@@ -1,7 +1,7 @@
 {
   "name": "mcp-cli-manager",
-  "version": "0.0.0-development",
-  "description": "MCP 伺服器管理工具",
+  "version": "1.0.0",
+  "description": "MCP Server Management Tool - A CLI tool for managing Model Context Protocol servers",
   "type": "module",
   "main": "bin/mcp-cli-manager",
   "bin": {
@@ -18,7 +18,8 @@
     "mcp",
     "cli",
     "server",
-    "manager"
+    "manager",
+    "model-context-protocol"
   ],
   "author": "crayon3shawn",
   "license": "MIT",
