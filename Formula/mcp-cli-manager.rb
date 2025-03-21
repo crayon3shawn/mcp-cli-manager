@@ -1,32 +1,34 @@
 class McpCliManager < Formula
-  desc "MCP CLI Manager - 用於管理 Model Context Protocol 服務的命令行工具"
+  desc "Command-line tool for managing Model Context Protocol servers"
   homepage "https://github.com/crayon3shawn/mcp-cli-manager"
-  url "https://github.com/crayon3shawn/mcp-cli-manager/archive/refs/tags/v1.0.0.tar.gz"
-  sha256 "8e82f1cbe742040e3f49ba97e03dc70dd7d834bb830721ae656ff479d53af7f9"
+  url "https://github.com/crayon3shawn/mcp-cli-manager/archive/refs/tags/v1.0.4.tar.gz"
+  sha256 "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
   license "MIT"
 
   depends_on "node"
 
   def install
     system "npm", "install", "--production"
-    bin.install "bin/cli.js" => "mcp"
+    bin.install "bin/mcp-cli-manager" => "mcp"
   end
 
   def caveats
     <<~EOS
-      請確保創建配置文件：
-      mkdir -p ~/.cursor
-      touch ~/.cursor/mcp.json
+      Configuration:
+      The configuration directory will be created automatically at:
+      ~/.cursor
 
-      配置文件示例：
+      Example configuration (mcp.json):
       {
-        "mcpServers": {
+        "servers": {
           "github": {
+            "type": "bin",
+            "command": "/opt/homebrew/bin/mcp-server-github"
+          },
+          "sequential-thinking": {
+            "type": "npx",
             "command": "npx",
-            "args": ["-y", "mcp-github"],
-            "env": {
-              "GITHUB_PERSONAL_ACCESS_TOKEN": "your-token-here"
-            }
+            "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
           }
         }
       }
