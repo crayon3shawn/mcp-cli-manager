@@ -6,154 +6,87 @@ on:
       - 'v*'
 
 jobs:
-  validate:
+  release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
-      - name: Validate version format
-        id: version_check
-        run: |
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          if ! [[ $TAG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "錯誤：版本號格式不正確。必須符合 semver 格式 (例如：1.0.0)"
-            exit 1
-          fi
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          if [ "$(printf '%s\n' "$TAG_VERSION" "$CURRENT_VERSION" | sort -V | head -n1)" = "$TAG_VERSION" ]; then
-            echo "錯誤：新版本號 ($TAG_VERSION) 必須大於當前版本 ($CURRENT_VERSION)"
-            exit 1
-          fi
-          echo "version=$TAG_VERSION" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Run tests
         run: npm test
-        
-      - name: Run linting
-        run: npm run lint
 
-  release:
-    needs: validate
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      version: ${{ steps.get_version.outputs.version }}
-      sha: ${{ steps.sha.outputs.sha }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
-          
       - name: Get version from tag
         id: get_version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
-      - name: Install dependencies
-        run: npm ci
-          
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-          
-      - name: Publish to npm
-        id: npm_publish
-        run: |
-          npm publish || {
-            echo "NPM 發布失敗，開始回滾..."
-            git tag -d v${{ steps.get_version.outputs.version }}
-            git push origin :refs/tags/v${{ steps.get_version.outputs.version }}
-            exit 1
-          }
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Update package version
+        run: npm version $VERSION --no-git-tag-version
+
+      - name: Build package
+        run: npm run build
+
+      - name: Publish to NPM
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          
-      - name: Calculate tarball SHA
+
+      - name: Calculate SHA
         id: sha
         run: |
-          SHA=$(curl -sL https://github.com/crayon3shawn/mcp-cli-manager/archive/refs/tags/v${{ steps.get_version.outputs.version }}.tar.gz | shasum -a 256 | cut -d ' ' -f 1)
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          TARBALL_URL="https://registry.npmjs.org/@chengche/mcp-cli-manager/-/mcp-cli-manager-${VERSION}.tgz"
+          curl -L $TARBALL_URL -o package.tgz
+          echo "SHA=$(shasum -a 256 package.tgz | cut -d ' ' -f 1)" >> $GITHUB_ENV
 
-  update-homebrew:
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
       - name: Checkout tap repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: crayon3shawn/homebrew-tap
           token: ${{ secrets.TAP_PAT }}
-          
-      - name: Update Homebrew formula
-        id: update_formula
+          path: homebrew-tap
+
+      - name: Update Homebrew Formula
         run: |
-          VERSION=${{ needs.release.outputs.version }}
-          SHA=${{ needs.release.outputs.sha }}
+          VERSION=${{ env.VERSION }}
+          SHA=${{ env.SHA }}
           
-          mkdir -p Formula
-          
-          # 更新 formula
-          cat > Formula/mcp-cli-manager.rb << EOF
+          mkdir -p homebrew-tap/Formula
+          cat > homebrew-tap/Formula/mcp-cli-manager.rb << EOL
           class McpCliManager < Formula
-            desc "CLI tool for managing MCP projects"
+            desc "A CLI tool for managing MCP projects"
             homepage "https://github.com/crayon3shawn/mcp-cli-manager"
-            url "https://github.com/crayon3shawn/mcp-cli-manager/archive/refs/tags/v${VERSION}.tar.gz"
+            url "https://registry.npmjs.org/@chengche/mcp-cli-manager/-/mcp-cli-manager-${VERSION}.tgz"
             sha256 "${SHA}"
             license "MIT"
-          
+
             depends_on "node"
-          
+
             def install
               system "npm", "install", *Language::Node.std_npm_install_args(libexec)
               bin.install_symlink Dir["#{libexec}/bin/*"]
             end
-          
+
             test do
-              assert_match "mcp-cli-manager", shell_output("#{bin}/mcp-cli-manager --version")
+              assert_match "mcp-cli-manager", shell_output("#{bin}/mcp --version")
             end
           end
-          EOF
-          
+          EOL
+
       - name: Commit and push formula changes
         run: |
+          cd homebrew-tap
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
           git add Formula/mcp-cli-manager.rb
-          git commit -m "chore: update formula to v${{ needs.release.outputs.version }}"
-          git push
-
-  notify:
-    needs: [release, update-homebrew]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Check workflow status
-        if: needs.release.result == 'failure' || needs.update-homebrew.result == 'failure'
-        run: |
-          echo "發布流程失敗！請檢查日誌並手動處理未完成的回滾操作。"
-          exit 1 
+          git commit -m "chore: update formula to v${{ env.VERSION }}"
+          git push 

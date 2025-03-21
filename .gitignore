@@ -93,4 +93,7 @@ package-lock.json
 yarn.lock
 
 # 測試覆蓋率報告
-coverage/ 
+coverage/
+
+# Homebrew Formula
+Formula/ 
