@@ -1,6 +1,6 @@
 {
   "name": "mcp-cli-manager",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "MCP Server Management Tool - A CLI tool for managing Model Context Protocol servers",
   "type": "module",
   "main": "bin/mcp-cli-manager",
