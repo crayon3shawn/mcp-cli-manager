@@ -17,9 +17,6 @@ docs/
 *.swo
 .cursor/
 
-# GitHub Actions
-.github/workflows/update-homebrew.yml
-
 # OS generated files
 .DS_Store
 .DS_Store?
