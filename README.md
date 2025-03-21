@@ -1,14 +1,19 @@
-# MCP CLI 管理器
+# MCP CLI Manager
 
-MCP CLI 管理器是一個用於管理 Model Context Protocol (MCP) 伺服器的命令行工具。它提供了簡單的界面來安裝、啟動、停止和管理 MCP 伺服器。
+MCP 伺服器管理工具，用於管理和監控 MCP（Model Control Protocol）伺服器。
 
 ## 功能特點
 
-- 自動偵測已安裝的 MCP 伺服器
-- 支援多種客戶端配置（Cursor、Claude Desktop、Cline VSCode、GoMCP）
-- 提供友好的命令行界面
-- 支援多種安裝方式（直接安裝、NPX、Smithery）
-- 進程管理和狀態監控
+- 列出已安裝的 MCP 伺服器
+- 搜尋可用的 MCP 伺服器
+- 安裝新的 MCP 伺服器
+- 監控伺服器運行狀態
+- 支援多種伺服器類型（bin、npx）
+
+## 系統需求
+
+- Node.js >= 14.0.0
+- npm >= 6.0.0
 
 ## 安裝
 
@@ -21,75 +26,58 @@ npm install -g mcp-cli-manager
 ### 列出已安裝的伺服器
 
 ```bash
-mcp-cli-manager list
+mcp list
 ```
 
-選項：
-- `-f, --format <type>`: 輸出格式（table/json/list）
-
-### 啟動伺服器
+### 搜尋可用的伺服器
 
 ```bash
-mcp-cli-manager start <server>
+mcp search <關鍵字>
 ```
-
-選項：
-- `-s, --silent`: 靜默模式運行
-
-### 停止伺服器
-
-```bash
-mcp-cli-manager stop [server]
-```
-
-如果不指定伺服器名稱，將停止所有運行中的伺服器。
 
 ### 安裝新伺服器
 
 ```bash
-mcp-cli-manager install <server>
+mcp install <伺服器名稱>
 ```
-
-選項：
-- `-c, --client <name>`: 客戶端名稱（預設：cursor）
-- `-s, --smithery`: 使用 smithery 工具安裝
-
-### 卸載伺服器
-
-```bash
-mcp-cli-manager uninstall <server>
-```
-
-選項：
-- `-c, --client <name>`: 客戶端名稱（預設：cursor）
-- `--keep-config`: 保留配置文件
 
 ### 查看伺服器狀態
 
 ```bash
-mcp-cli-manager status [server]
+mcp status
 ```
 
-如果不指定伺服器名稱，將顯示所有伺服器的狀態。
+## 伺服器類型
 
-## 支援的伺服器
+### Binary (bin)
+- 系統級安裝的二進制檔案
+- 通常通過套件管理器（如 Homebrew）安裝
+- 啟動速度快，性能好
 
-- github: GitHub MCP 伺服器
-- package-version: 套件版本檢查伺服器
-- bedrock: Amazon Bedrock MCP 伺服器
+### NPX
+- 通過 npm 套件執行
+- 不需要全局安裝
+- 適合臨時使用或測試
 
-## 配置文件位置
+## 配置
 
-- Cursor: `~/.cursor/mcp.json`
-- Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Cline VSCode: `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
-- GoMCP: `~/.config/gomcp/config.yaml`
+伺服器配置存儲在全局配置檔案中：
+
+```yaml
+servers:
+  github:
+    type: bin
+    command: /opt/homebrew/bin/mcp-server-github
+  package-version:
+    type: npx
+    command: npx -y mcp-package-version
+```
 
 ## 開發
 
-1. 克隆倉庫：
+1. 克隆專案：
 ```bash
-git clone https://github.com/your-username/mcp-cli-manager.git
+git clone https://github.com/chengche6230/mcp-cli-manager.git
 cd mcp-cli-manager
 ```
 
@@ -98,15 +86,11 @@ cd mcp-cli-manager
 npm install
 ```
 
-3. 運行測試：
+3. 執行開發版本：
 ```bash
-npm test
+npm start
 ```
-
-## 貢獻
-
-歡迎提交 Pull Request 或開 Issue 來改進這個工具。
 
 ## 授權
 
-MIT 
+MIT License 

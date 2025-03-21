@@ -5,12 +5,11 @@ class McpCliManager < Formula
   sha256 "8e82f1cbe742040e3f49ba97e03dc70dd7d834bb830721ae656ff479d53af7f9"
   license "MIT"
 
-  depends_on "zsh"
-  depends_on "screen"
+  depends_on "node"
 
   def install
-    bin.install "cli/mcp"
-    prefix.install "cli/core"
+    system "npm", "install", "--production"
+    bin.install "bin/cli.js" => "mcp"
   end
 
   def caveats
@@ -23,8 +22,8 @@ class McpCliManager < Formula
       {
         "mcpServers": {
           "github": {
-            "command": "/opt/homebrew/bin/mcp-server-github",
-            "args": [],
+            "command": "npx",
+            "args": ["-y", "mcp-github"],
             "env": {
               "GITHUB_PERSONAL_ACCESS_TOKEN": "your-token-here"
             }
