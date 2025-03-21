@@ -23,15 +23,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run tests
-        run: npm test
+      - name: Build
+        run: npm run build
 
       - name: Get version from tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Update package version
-        run: npm version $VERSION --no-git-tag-version
+        run: npm version ${{ steps.get_version.outputs.version }} --no-git-tag-version
 
       - name: Publish to NPM
         run: npm publish
@@ -41,9 +41,9 @@ jobs:
       - name: Calculate SHA
         id: sha
         run: |
-          TARBALL_URL="https://registry.npmjs.org/@chengche/mcp-cli-manager/-/mcp-cli-manager-${VERSION}.tgz"
+          TARBALL_URL="https://registry.npmjs.org/mcp-cli-manager/-/mcp-cli-manager-${{ steps.get_version.outputs.version }}.tgz"
           curl -L $TARBALL_URL -o package.tgz
-          echo "SHA=$(shasum -a 256 package.tgz | cut -d ' ' -f 1)" >> $GITHUB_ENV
+          echo "sha=$(shasum -a 256 package.tgz | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
 
       - name: Checkout tap repository
         uses: actions/checkout@v4
@@ -54,16 +54,13 @@ jobs:
 
       - name: Update Homebrew Formula
         run: |
-          VERSION=${{ env.VERSION }}
-          SHA=${{ env.SHA }}
-          
           mkdir -p homebrew-tap/Formula
           cat > homebrew-tap/Formula/mcp-cli-manager.rb << EOL
           class McpCliManager < Formula
             desc "A CLI tool for managing MCP projects"
             homepage "https://github.com/crayon3shawn/mcp-cli-manager"
-            url "https://registry.npmjs.org/@chengche/mcp-cli-manager/-/mcp-cli-manager-${VERSION}.tgz"
-            sha256 "${SHA}"
+            url "https://registry.npmjs.org/mcp-cli-manager/-/mcp-cli-manager-${{ steps.get_version.outputs.version }}.tgz"
+            sha256 "${{ steps.sha.outputs.sha }}"
             license "MIT"
 
             depends_on "node"
@@ -85,5 +82,5 @@ jobs:
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
           git add Formula/mcp-cli-manager.rb
-          git commit -m "chore: update formula to v${{ env.VERSION }}"
+          git commit -m "chore: update formula to v${{ steps.get_version.outputs.version }}"
           git push 

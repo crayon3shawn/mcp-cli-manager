@@ -1,24 +1,131 @@
 # MCP CLI Manager
 
-A command-line tool for managing and monitoring MCP (Model Context Protocol) servers.
+[English](#english) | [中文](#中文)
+
+<a name="中文"></a>
+# MCP CLI Manager
+
+一個用於管理 MCP Server 的命令行工具。
+
+## 功能特點
+
+- 註冊和管理 MCP Server
+- 支持 npx 和 binary 類型的服務器
+- 自動日誌記錄和管理
+- 服務器狀態監控
+- 全局和本地配置管理
+- 服務器搜索功能
+
+## 安裝
+
+### 使用 npm
+
+```bash
+npm install -g mcp-cli-manager
+```
+
+### 使用 Homebrew
+
+```bash
+brew tap crayon3shawn/tap
+brew install mcp-cli-manager
+```
+
+## 使用方法
+
+### 註冊 MCP Server
+
+```bash
+mcp regist <name>
+```
+
+例如：
+```bash
+mcp register github 
+```
+
+### 啟動 MCP Server
+
+```bash
+mcp start <name>
+```
+
+### 停止 MCP Server
+
+```bash
+mcp stop <name>
+```
+
+### 停止所有 MCP Server
+
+```bash
+mcp stop
+```
+
+### 查看 MCP Server 狀態
+
+```bash
+mcp status
+```
+
+### 列出所有 MCP Server
+
+```bash
+mcp list
+```
+
+### 搜索 MCP Server
+
+```bash
+mcp search <query>
+```
+
+### 同步 MCP Server 配置
+
+```bash
+mcp sync
+```
+
+## 配置
+
+配置文件位於：
+- 全局配置：`~/.cursor/config/global.json`
+- Cursor 配置：`~/.cursor/config/cursor.json`
+
+## 日誌
+
+服務器日誌位於：`~/.cursor/logs/<server-name>.log`
+
+## 開發
+
+```bash
+# 安裝依賴
+npm install
+
+# 構建
+npm run build
+
+# 運行測試
+npm test
+```
+
+---
+
+<a name="english"></a>
+# MCP CLI Manager
+
+A command-line tool for managing MCP Servers.
 
 ## Features
 
-- List installed MCP servers
-- Search for available MCP servers
-- Register new MCP servers
-- Monitor server status
-- Start and stop servers
-- Support for multiple server types (binary, npx)
-
-## Requirements
-
-- Node.js >= 14.0.0
-- npm >= 6.0.0
+- Register and manage MCP Servers
+- Support for npx and binary server types
+- Automatic logging and management
+- Server status monitoring
+- Global and local configuration management
+- Server search functionality
 
 ## Installation
-
-You can install MCP CLI Manager using either npm or Homebrew:
 
 ### Using npm
 
@@ -29,105 +136,80 @@ npm install -g mcp-cli-manager
 ### Using Homebrew
 
 ```bash
-brew tap crayon3shawn/mcp-cli-manager
+brew tap crayon3shawn/tap
 brew install mcp-cli-manager
 ```
 
 ## Usage
 
-### List installed servers
+### Register MCP Server
+
+```bash
+mcp register <name> 
+```
+
+Example:
+```bash
+mcp register github 
+```
+
+### Start MCP Server
+
+```bash
+mcp start <name>
+```
+
+### Stop MCP Server
+
+```bash
+mcp stop <name>
+```
+
+### Stop All MCP Servers
+
+```bash
+mcp stop
+```
+
+### Check MCP Server Status
+
+```bash
+mcp status
+```
+
+### List All MCP Servers
 
 ```bash
 mcp list
 ```
 
-### Search for available servers
+### Search MCP Servers
 
 ```bash
 mcp search <query>
 ```
 
-### Register a new server
+### Sync MCP Server Configuration
 
 ```bash
-mcp regist <server-name>
+mcp sync
 ```
-
-### Check server status
-
-```bash
-mcp status [server-name]
-```
-
-### Start servers
-
-Start all servers:
-```bash
-mcp run
-```
-
-Start specific servers:
-```bash
-mcp run server1 server2
-```
-
-### Stop servers
-
-Stop all servers:
-```bash
-mcp stop
-```
-
-Stop specific servers:
-```bash
-mcp stop server1 server2
-```
-
-## Server Types
-
-### Binary (bin)
-- System-level binary installation
-- Usually installed via package managers (e.g., Homebrew)
-- Fast startup and better performance
-
-### NPX
-- Executed through npm packages
-- No global installation required
-- Suitable for temporary use or testing
 
 ## Configuration
 
-Server configurations are stored in the global configuration file:
-
-```yaml
-servers:
-  github:
-    type: bin
-    command: /opt/homebrew/bin/mcp-server-github
-  sequential-thinking:
-    type: npx
-    command: npx
-    args: ["-y", "@modelcontextprotocol/server-sequential-thinking"]
-```
+Configuration files are located at:
+- Global config: `~/.cursor/config/global.json`
+- Cursor config: `~/.cursor/config/cursor.json`
 
 ## Development
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/crayon3shawn/mcp-cli-manager.git
-cd mcp-cli-manager
-```
-
-2. Install dependencies:
-```bash
+# Install dependencies
 npm install
+
+# Build
+npm run build
+
+# Run tests
+npm test
 ```
-
-3. Run development version:
-```bash
-npm start
-```
-
-## License
-
-MIT License 

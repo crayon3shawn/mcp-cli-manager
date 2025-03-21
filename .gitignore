@@ -1,21 +1,27 @@
 # Dependencies
 node_modules/
 package-lock.json
+yarn.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Documentation
 docs/
 
 # Environment
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
-# Editor directories and files
+# Editor and IDE
 .idea/
 .vscode/
+.cursor/
 *.swp
 *.swo
-.cursor/
+*.sublime-workspace
+*.sublime-project
 
 # OS generated files
 .DS_Store
@@ -25,23 +31,45 @@ docs/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Project specific
-servers.conf
-
-# macOS
 .AppleDouble
 .LSOverride
 
-# Logs
+# Logs and debugging
 logs/
 *.log
+npm-debug.log*
 
 # Runtime data
 pids/
 *.pid
 *.seed
 *.pid.lock
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Build output
+dist/
+build/
+out/
+
+# Project specific
+servers.conf
+config.yaml
+servers.yaml
+!config.yaml.example
+!servers.yaml.example
+
+# Homebrew
+Formula/
+
+# Temporary files
+.tmp/
+temp/
+*.tmp
+*.temp
 
 # Local configuration
 .env
