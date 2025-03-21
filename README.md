@@ -1,96 +1,132 @@
 # MCP CLI Manager
 
-MCP 伺服器管理工具，用於管理和監控 MCP（Model Control Protocol）伺服器。
+A command-line tool for managing and monitoring MCP (Model Context Protocol) servers.
 
-## 功能特點
+## Features
 
-- 列出已安裝的 MCP 伺服器
-- 搜尋可用的 MCP 伺服器
-- 安裝新的 MCP 伺服器
-- 監控伺服器運行狀態
-- 支援多種伺服器類型（bin、npx）
+- List installed MCP servers
+- Search for available MCP servers
+- Register new MCP servers
+- Monitor server status
+- Start and stop servers
+- Support for multiple server types (binary, npx)
 
-## 系統需求
+## Requirements
 
 - Node.js >= 14.0.0
 - npm >= 6.0.0
 
-## 安裝
+## Installation
+
+You can install MCP CLI Manager using either npm or Homebrew:
+
+### Using npm
 
 ```bash
 npm install -g mcp-cli-manager
 ```
 
-## 使用方法
+### Using Homebrew
 
-### 列出已安裝的伺服器
+```bash
+brew tap crayon3shawn/mcp-cli-manager
+brew install mcp-cli-manager
+```
+
+## Usage
+
+### List installed servers
 
 ```bash
 mcp list
 ```
 
-### 搜尋可用的伺服器
+### Search for available servers
 
 ```bash
-mcp search <關鍵字>
+mcp search <query>
 ```
 
-### 安裝新伺服器
+### Register a new server
 
 ```bash
-mcp install <伺服器名稱>
+mcp regist <server-name>
 ```
 
-### 查看伺服器狀態
+### Check server status
 
 ```bash
-mcp status
+mcp status [server-name]
 ```
 
-## 伺服器類型
+### Start servers
+
+Start all servers:
+```bash
+mcp run
+```
+
+Start specific servers:
+```bash
+mcp run server1 server2
+```
+
+### Stop servers
+
+Stop all servers:
+```bash
+mcp stop
+```
+
+Stop specific servers:
+```bash
+mcp stop server1 server2
+```
+
+## Server Types
 
 ### Binary (bin)
-- 系統級安裝的二進制檔案
-- 通常通過套件管理器（如 Homebrew）安裝
-- 啟動速度快，性能好
+- System-level binary installation
+- Usually installed via package managers (e.g., Homebrew)
+- Fast startup and better performance
 
 ### NPX
-- 通過 npm 套件執行
-- 不需要全局安裝
-- 適合臨時使用或測試
+- Executed through npm packages
+- No global installation required
+- Suitable for temporary use or testing
 
-## 配置
+## Configuration
 
-伺服器配置存儲在全局配置檔案中：
+Server configurations are stored in the global configuration file:
 
 ```yaml
 servers:
   github:
     type: bin
     command: /opt/homebrew/bin/mcp-server-github
-  package-version:
+  sequential-thinking:
     type: npx
-    command: npx -y mcp-package-version
+    command: npx -y @modelcontextprotocol/server-sequential-thinking
 ```
 
-## 開發
+## Development
 
-1. 克隆專案：
+1. Clone the repository:
 ```bash
-git clone https://github.com/chengche6230/mcp-cli-manager.git
+git clone https://github.com/crayon3shawn/mcp-cli-manager.git
 cd mcp-cli-manager
 ```
 
-2. 安裝依賴：
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-3. 執行開發版本：
+3. Run development version:
 ```bash
 npm start
 ```
 
-## 授權
+## License
 
 MIT License 

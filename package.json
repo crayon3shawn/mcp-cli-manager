@@ -10,9 +10,7 @@
   "scripts": {
     "start": "node bin/mcp-cli-manager",
     "lint": "eslint .",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "version": "git describe --tags --abbrev=0 || echo '0.0.0'",
-    "prepack": "npm run version | xargs -I{} npm version {} --no-git-tag-version --allow-same-version"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "mcp",
