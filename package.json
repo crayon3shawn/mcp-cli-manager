@@ -1,50 +1,36 @@
 {
   "name": "mcp-cli-manager",
-  "version": "1.0.1",
-  "description": "A command-line tool for managing Model Context Protocol (MCP) servers",
-  "main": "bin/mcp",
+  "version": "1.0.0",
+  "description": "MCP 伺服器管理工具",
+  "main": "index.js",
   "bin": {
-    "mcp": "./bin/mcp"
+    "mcp-cli-manager": "./bin/cli.js"
   },
-  "files": [
-    "bin/mcp",
-    "lib/**/*.sh",
-    "scripts/install.sh",
-    "config.yaml.example"
-  ],
   "scripts": {
-    "start": "./bin/mcp",
-    "test": "bats test/*.bats",
-    "lint": "shellcheck bin/mcp lib/**/*.sh",
-    "format": "shfmt -i 2 -ci -w bin/mcp lib/**/*.sh",
-    "version": "./bin/mcp --version",
-    "postinstall": "./scripts/install.sh"
+    "start": "node ./bin/cli.js",
+    "test": "jest"
   },
   "keywords": [
-    "cli",
     "mcp",
+    "cli",
     "server",
-    "management"
+    "manager"
   ],
   "author": "",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/crayon3shawn/mcp-cli-manager.git"
-  },
-  "bugs": {
-    "url": "https://github.com/crayon3shawn/mcp-cli-manager/issues"
-  },
-  "homepage": "https://github.com/crayon3shawn/mcp-cli-manager#readme",
-  "os": [
-    "darwin",
-    "linux"
-  ],
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^9.4.1",
+    "inquirer": "^8.2.5",
+    "ps-node": "^0.1.6",
+    "tree-kill": "^1.2.2",
+    "yaml": "^2.2.1"
   },
   "devDependencies": {
-    "bats": "^1.10.0"
+    "jest": "^29.5.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
-} 
+}
