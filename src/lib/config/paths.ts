@@ -2,10 +2,11 @@
  * Configuration Path Management
  */
 
-import { join } from 'path';
-import os from 'os';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import type { ConfigPaths } from '../types.js';
 import { ValidationError } from '../errors.js';
 
@@ -24,28 +25,24 @@ export const ENV = {
  * Default configuration paths
  */
 const DEFAULT_PATHS: ConfigPaths = {
-  // Global configuration
+  // Global configuration (same as cursor for now)
   global: ENV.isDev 
-    ? join(__dirname, '..', '..', '..', 'dev-config', 'mcp.json')
-    : join(ENV.home, '.cursor', 'mcp.json'),
-
+    ? path.join(__dirname, '..', '..', 'dev-config', 'mcp.json')
+    : path.join(os.homedir(), '.cursor', 'mcp.json'),
   // Client configurations
   cursor: ENV.isDev 
-    ? join(__dirname, '..', '..', '..', 'dev-config', 'cursor.json')
-    : join(ENV.home, '.cursor', 'mcp.json'),
-
+    ? path.join(__dirname, '..', '..', 'dev-config', 'cursor.json')
+    : path.join(os.homedir(), '.cursor', 'mcp.json'),
   claude: ENV.isDev
-    ? join(__dirname, '..', '..', '..', 'dev-config', 'claude.json')
-    : join(ENV.home, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json'),
-
+    ? path.join(__dirname, '..', '..', 'dev-config', 'claude.json')
+    : path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json'),
   claudeDesktop: ENV.isDev
-    ? join(__dirname, '..', '..', '..', 'dev-config', 'claude-desktop.json')
-    : join(ENV.home, 'Library', 'Application Support', 'Claude-Desktop', 'config', 'mcp.json'),
-
+    ? path.join(__dirname, '..', '..', 'dev-config', 'claude-desktop.json')
+    : path.join(os.homedir(), 'Library', 'Application Support', 'Claude-Desktop', 'config', 'mcp.json'),
   vscode: ENV.isDev
-    ? join(__dirname, '..', '..', '..', 'dev-config', 'vscode.json')
-    : join(ENV.home, 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'saoudrizwan.claude-dev', 'settings', 'cline_mcp_settings.json')
-} as const;
+    ? path.join(__dirname, '..', '..', 'dev-config', 'vscode.json')
+    : path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'saoudrizwan.claude-dev', 'settings', 'cline_mcp_settings.json')
+};
 
 /**
  * Configuration path manager
@@ -108,7 +105,9 @@ export class ConfigPathManager {
   }
 }
 
-// Export singleton instance
+/**
+ * Export singleton instance
+ */
 export const configPaths = ConfigPathManager.getInstance();
 
 // Export default paths for direct access

@@ -9,6 +9,8 @@ import { configPaths } from './config/paths.js';
 import { ProcessError } from './errors.js';
 import { ServerStatusLiterals, type ServerInfo, type McpServer, type ServerStatusInfo } from './types.js';
 import { getRegisteredServers, getServerInfo } from './regist.js';
+import { getServerStatus } from './status.js';
+import { getInstalledServers } from './install.js';
 
 /**
  * Server process type with additional metadata
@@ -248,4 +250,8 @@ const cleanup = async () => {
 
 // Handle process events
 process.on('exit', stopAllServers);
-process.on('SIGINT', cleanup); 
+process.on('SIGINT', cleanup);
+
+const validateServer = (server: McpServer): void => {
+  // ... existing code ...
+}; 

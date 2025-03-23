@@ -2,16 +2,17 @@
  * MCP Configuration Management Module
  */
 
-import { promises as fs } from 'fs';
-import path from 'path';
-import os from 'os';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { readJson, writeJson } from './fs/json.js';
-import { configPaths } from './config/paths.js';
+import { configPaths, ENV } from './config/paths.js';
 import { globalConfigMigrator } from './config/version.js';
 import { ConfigError } from './errors.js';
-import type { GlobalConfig, VersionedConfig } from './types.js';
+import type { GlobalConfig, VersionedConfig, ServerInfo } from './types.js';
+import { globalConfigSchema, versionedConfigSchema } from './schemas.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -118,23 +119,27 @@ export async function writeJsonConfig<T>(filePath: string, data: T): Promise<voi
  */
 export async function getGlobalConfig(): Promise<GlobalConfig> {
   try {
-    const versionedConfig = await readJson<VersionedConfig<GlobalConfig>>(configPaths.getPath('global'));
+    const configPath = configPaths.getPath('global');
+    const config = await readJson<VersionedConfig<GlobalConfig>>(configPath);
     
-    if (!versionedConfig) {
-      // Create initial config with version 0
-      const initialConfig: VersionedConfig<GlobalConfig> = {
-        version: 0,
-        data: { mcpServers: {} }
+    // Initialize default config if none exists
+    if (!config) {
+      const defaultConfig: GlobalConfig = {
+        servers: {}
       };
-      await saveGlobalConfig(initialConfig.data);
-      return initialConfig.data;
+      await saveGlobalConfig(defaultConfig);
+      return defaultConfig;
     }
+    
+    // Validate config structure
+    const versionedSchema = versionedConfigSchema(globalConfigSchema);
+    const validatedConfig = versionedSchema.parse(config);
 
     // Check if migration is needed
-    if (globalConfigMigrator.needsMigration(versionedConfig.version)) {
+    if (globalConfigMigrator.needsMigration(validatedConfig.version)) {
       const migratedConfig = await globalConfigMigrator.migrate(
-        versionedConfig.data,
-        versionedConfig.version
+        validatedConfig.data,
+        validatedConfig.version
       );
       
       // Save migrated config
@@ -142,9 +147,22 @@ export async function getGlobalConfig(): Promise<GlobalConfig> {
       return migratedConfig;
     }
 
-    return versionedConfig.data;
+    // Convert mcpServers to servers if needed
+    if (validatedConfig.data.mcpServers && !validatedConfig.data.servers) {
+      validatedConfig.data.servers = validatedConfig.data.mcpServers;
+    }
+
+    // Ensure servers property exists
+    if (!validatedConfig.data.servers) {
+      validatedConfig.data.servers = {};
+    }
+
+    return validatedConfig.data;
   } catch (error) {
-    throw new ConfigError('Failed to read global configuration', error);
+    if (error instanceof Error) {
+      throw new ConfigError(`Failed to read global config: ${error.message}`, error);
+    }
+    throw error;
   }
 }
 
@@ -153,17 +171,22 @@ export async function getGlobalConfig(): Promise<GlobalConfig> {
  */
 export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
   try {
+    const configPath = configPaths.getPath('global');
     const versionedConfig: VersionedConfig<GlobalConfig> = {
       version: globalConfigMigrator.getCurrentVersion(),
       data: config
     };
-    
-    await writeJson(configPaths.getPath('global'), versionedConfig, {
-      spaces: 2,
-      ensureDirectory: true
-    });
+
+    // Validate config before saving
+    const versionedSchema = versionedConfigSchema(globalConfigSchema);
+    versionedSchema.parse(versionedConfig);
+
+    await writeJson(configPath, versionedConfig);
   } catch (error) {
-    throw new ConfigError('Failed to save global configuration', error);
+    if (error instanceof Error) {
+      throw new ConfigError(`Failed to save global config: ${error.message}`, error);
+    }
+    throw error;
   }
 }
 

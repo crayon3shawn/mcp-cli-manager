@@ -2,93 +2,63 @@
  * MCP Server Search Module
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { SearchError } from './errors.js';
-
-const execAsync = promisify(exec);
-
-/**
- * NPM package search result
- */
-interface NpmSearchResult {
-  readonly name: string;
-  readonly version: string;
-  readonly description?: string;
-}
-
-/**
- * Search result interface
- */
-export interface SearchResult {
-  readonly name: string;
-  readonly version: string;
-  readonly description: string;
-}
-
-/**
- * Search configuration
- */
-const SEARCH_CONFIG = {
-  PREFIX: 'mcp-',
-  NO_RESULTS_ERROR: 'No matches found',
-  DEFAULT_DESCRIPTION: '',
-  INDENT_SIZE: 3
-} as const;
-
-/**
- * Format package as search result
- */
-const formatPackage = (pkg: NpmSearchResult): SearchResult => ({
-  name: pkg.name,
-  version: pkg.version,
-  description: pkg.description ?? SEARCH_CONFIG.DEFAULT_DESCRIPTION
-});
-
-/**
- * Format server entry for display
- */
-const formatServerEntry = (server: SearchResult, index: number): string => {
-  const header = `${index + 1}. ${server.name} (v${server.version})`;
-  return server.description
-    ? `${header}\n${' '.repeat(SEARCH_CONFIG.INDENT_SIZE)}${server.description}`
-    : header;
-};
+import kleur from 'kleur';
+import boxen from 'boxen';
+import npmRegistryFetch from 'npm-registry-fetch';
+import { SearchResult } from './types.js';
 
 /**
  * Search for MCP servers
- * @throws {SearchError} If search fails
  */
-export const searchServers = async (keyword: string): Promise<SearchResult[]> => {
+export const searchServers = async (query: string): Promise<SearchResult[]> => {
   try {
-    // Search npm registry
-    const searchCmd = `npm search --json --no-description "${SEARCH_CONFIG.PREFIX}${keyword}"`;
-    const { stdout } = await execAsync(searchCmd);
+    const results = await npmRegistryFetch.search(`mcp-${query}`);
     
-    // Parse and format results
-    const searchResults = JSON.parse(stdout) as NpmSearchResult[];
-    return searchResults.map(formatPackage);
+    return results.map((pkg: any) => ({
+      name: pkg.name,
+      version: pkg.version,
+      description: pkg.description || 'No description available',
+      author: pkg.author?.name || 'Unknown',
+      lastUpdated: new Date(pkg.date).toLocaleDateString()
+    }));
   } catch (error) {
-    // Handle no results case
-    if ((error as { stderr?: string }).stderr?.includes(SEARCH_CONFIG.NO_RESULTS_ERROR)) {
-      return [];
+    if (error instanceof Error) {
+      throw new Error(`搜尋失敗: ${error.message}`);
     }
-    
-    // Handle other errors
-    throw new SearchError(
-      'Failed to search for MCP servers',
-      error instanceof Error ? error : new Error(String(error))
-    );
+    throw new Error('搜尋時發生未知錯誤');
   }
 };
 
 /**
  * Format search results for display
  */
-export const formatSearchResults = (servers: SearchResult[]): string =>
-  servers.length === 0
-    ? 'No matching servers found'
-    : servers.map(formatServerEntry).join('\n');
+export const formatSearchResults = (results: SearchResult[]): string => {
+  if (results.length === 0) {
+    return boxen('未找到相關的 MCP 伺服器', {
+      padding: 1,
+      margin: 1,
+      borderStyle: 'round',
+      borderColor: 'yellow'
+    });
+  }
 
-// Export as named exports for better tree-shaking
-export { searchServers as default }; 
+  const formattedResults = results.map((result, index) => {
+    const name = kleur.blue(result.name);
+    const version = kleur.gray(`v${result.version}`);
+    const author = kleur.gray(`by ${result.author}`);
+    const date = kleur.gray(`updated ${result.lastUpdated}`);
+    
+    return [
+      `${index + 1}. ${name} ${version}`,
+      `   ${result.description}`,
+      `   ${author} | ${date}`
+    ].join('\n');
+  });
+
+  return boxen(formattedResults.join('\n\n'), {
+    padding: 1,
+    margin: 1,
+    borderStyle: 'round',
+    borderColor: 'blue'
+  });
+}; 

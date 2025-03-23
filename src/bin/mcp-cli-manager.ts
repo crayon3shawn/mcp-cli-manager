@@ -6,13 +6,18 @@
 
 import { Command } from 'commander';
 import pkg from '../../package.json' with { type: 'json' };
-import { registerServer, unregisterServer, getServerInfo, getRegisteredServers } from '../lib/regist.js';
+import { registerServer, unregisterServer, getServerInfo, getInstalledServers } from '../lib/install.js';
 import { runServer, stopServer, stopAllServers } from '../lib/process.js';
-import { getStatus } from '../lib/status.js';
 import { searchServers, formatSearchResults } from '../lib/search.js';
 import { syncConfig } from '../lib/sync.js';
 import { listServers } from '../lib/list.js';
 import type { ServerType, TargetApp } from '../lib/types.js';
+import { createInterface } from 'node:readline';
+import { stdin, stdout, exit } from 'node:process';
+import { getGlobalConfig, saveGlobalConfig } from '../lib/config.js';
+import { startServer } from '../lib/process.js';
+import { getServerStatus } from '../lib/status.js';
+import { installServer, uninstallServer } from '../lib/install.js';
 
 const program = new Command();
 
@@ -21,10 +26,10 @@ program
   .description('MCP Server Management Tool')
   .version(pkg.version);
 
-// Regist command
+// Install command
 program
-  .command('regist')
-  .description('Search and register a new MCP server')
+  .command('install')
+  .description('Search and install a new MCP server')
   .argument('[keyword]', 'Search keyword')
   .action(async (keyword: string = '', options: any) => {
     try {
@@ -33,7 +38,7 @@ program
         const results = await searchServers('');
         console.log('Available MCP Servers:');
         console.log(formatSearchResults(results));
-        console.log('\nUsage: mcp regist <keyword>');
+        console.log('\nUsage: mcp install <keyword>');
         return;
       }
 
@@ -54,14 +59,13 @@ program
         console.log('----------------------------------------');
       });
 
-      // 詢問用戶是否要註冊
-      const readline = await import('readline');
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
+      // 詢問用戶是否要安裝
+      const rl = createInterface({
+        input: stdin,
+        output: stdout
       });
 
-      rl.question('\nEnter the number of the server to register (or press Enter to cancel): ', async (answer) => {
+      rl.question('\nEnter the number of the server to install (or press Enter to cancel): ', async (answer: string) => {
         if (!answer) {
           rl.close();
           return;
@@ -82,7 +86,7 @@ program
         console.log(`Description: ${selectedServer.description}`);
         console.log('----------------------------------------');
 
-        rl.question('\nDo you want to register this server? (y/n): ', async (confirm) => {
+        rl.question('\nDo you want to install this server? (y/n): ', async (confirm: string) => {
           rl.close();
           
           if (confirm.toLowerCase() !== 'y') {
@@ -100,46 +104,45 @@ program
               args: [packageName],
               env: {}
             });
-            console.log(`Server registered: ${name}`);
+            console.log(`Server installed: ${name}`);
           } catch (error) {
-            console.error('Registration failed:', error instanceof Error ? error.message : String(error));
-            process.exit(1);
+            console.error('Installation failed:', error instanceof Error ? error.message : String(error));
+            exit(1);
           }
         });
       });
     } catch (error) {
-      console.error('Registration failed:', error instanceof Error ? error.message : String(error));
-      process.exit(1);
+      console.error('Installation failed:', error instanceof Error ? error.message : String(error));
+      exit(1);
     }
   });
 
-// Unregister command
+// Uninstall command
 program
-  .command('unregister')
-  .description('Unregister an MCP server')
-  .argument('<name>', 'Server name')
+  .command('uninstall')
+  .description('Uninstall an MCP server')
+  .argument('<n>', 'Server name')
   .action(async (name: string) => {
     try {
       await unregisterServer(name);
-      console.log(`Server unregistered: ${name}`);
+      console.log(`Server uninstalled: ${name}`);
     } catch (error) {
-      console.error('Unregistration failed:', error instanceof Error ? error.message : String(error));
-      process.exit(1);
+      console.error('Uninstallation failed:', error instanceof Error ? error.message : String(error));
+      exit(1);
     }
   });
 
 // List command
 program
   .command('list')
-  .description('List registered MCP servers')
-  .option('-f, --format <format>', 'Output format (table, json, list)', 'table')
-  .action(async (options: any) => {
+  .description('List installed MCP servers with status')
+  .action(async () => {
     try {
-      const output = await listServers(options.format);
+      const output = await listServers();
       console.log(output);
     } catch (error) {
       console.error('Failed to list servers:', error instanceof Error ? error.message : String(error));
-      process.exit(1);
+      exit(1);
     }
   });
 
@@ -154,7 +157,7 @@ program
       console.log(formatSearchResults(results));
     } catch (error) {
       console.error('Search failed:', error instanceof Error ? error.message : String(error));
-      process.exit(1);
+      exit(1);
     }
   });
 
@@ -172,7 +175,7 @@ program
       await runServer(name);
     } catch (error) {
       console.error('Failed to start server:', error instanceof Error ? error.message : String(error));
-      process.exit(1);
+      exit(1);
     }
   });
 
@@ -190,21 +193,21 @@ program
       }
     } catch (error) {
       console.error('Failed to stop server:', error instanceof Error ? error.message : String(error));
-      process.exit(1);
+      exit(1);
     }
   });
 
-// Status command
+// Status command (alias for list)
 program
   .command('status')
-  .description('Show MCP server status')
+  .description('Show MCP server status (alias for "list")')
   .action(async () => {
     try {
-      const status = await getStatus();
-      console.log(status);
+      const output = await listServers();
+      console.log(output);
     } catch (error) {
       console.error('Failed to get status:', error instanceof Error ? error.message : String(error));
-      process.exit(1);
+      exit(1);
     }
   });
 
@@ -218,7 +221,7 @@ program
       await syncConfig(target as TargetApp);
     } catch (error) {
       console.error('Sync failed:', error instanceof Error ? error.message : String(error));
-      process.exit(1);
+      exit(1);
     }
   });
 

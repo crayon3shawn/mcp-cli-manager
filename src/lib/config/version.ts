@@ -3,15 +3,7 @@
  */
 
 import { ValidationError } from '../errors.js';
-import type { GlobalConfig } from '../types.js';
-
-/**
- * Versioned configuration interface
- */
-export interface VersionedConfig<T> {
-  version: number;
-  data: T;
-}
+import type { GlobalConfig, VersionedConfig } from '../types.js';
 
 /**
  * Migration function type
@@ -76,10 +68,8 @@ globalConfigMigrator.addMigration(async (config) => {
   // Convert old format to new format
   return {
     ...config,
-    mcpServers: {
-      ...config.mcpServers,
-      // Add any necessary transformations
-    }
+    servers: config.mcpServers ?? {},
+    mcpServers: undefined
   };
 });
 

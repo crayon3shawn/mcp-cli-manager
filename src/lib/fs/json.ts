@@ -10,18 +10,18 @@ import { FileSystemError } from '../errors.js';
  * JSON read options
  */
 export interface JsonReadOptions {
-  readonly encoding?: BufferEncoding;
-  readonly reviver?: (key: string, value: any) => any;
+  encoding?: BufferEncoding;
+  reviver?: (key: string, value: unknown) => unknown;
 }
 
 /**
  * JSON write options
  */
 export interface JsonWriteOptions {
-  readonly encoding?: BufferEncoding;
-  readonly replacer?: (key: string, value: any) => any;
-  readonly spaces?: number;
-  readonly ensureDirectory?: boolean;
+  encoding?: BufferEncoding;
+  replacer?: (key: string, value: unknown) => unknown;
+  spaces?: number;
+  ensureDirectory?: boolean;
 }
 
 /**

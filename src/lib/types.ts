@@ -31,21 +31,23 @@ export const ServerStatusLiterals = {
 export type ServerStatus = typeof ServerStatusLiterals[keyof typeof ServerStatusLiterals];
 
 /**
- * Server configuration interface
+ * Server information interface
  */
-export interface McpServer {
-  readonly type: ServerType;
-  readonly command: string;
-  readonly args: readonly string[];
-  readonly env: Readonly<Record<string, string>>;
+export interface ServerInfo {
+  name: string;
+  type: ServerType;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  source?: 'global' | 'cursor' | 'both';
 }
 
 /**
  * Global configuration interface
  */
 export interface GlobalConfig {
-  readonly mcpServers: Readonly<Record<string, McpServer>>;
-  readonly [key: string]: unknown;
+  servers: Record<string, ServerInfo>;
+  mcpServers?: Record<string, ServerInfo>;
 }
 
 /**
@@ -63,28 +65,21 @@ export interface ConfigPaths {
  * Server status information
  */
 export interface ServerStatusInfo {
-  readonly name: string;
-  readonly type: ServerType;
-  readonly status: ServerStatus;
-  readonly startTime: string;
+  name: string;
+  type: ServerType;
+  status: ServerStatus;
+  startTime: string;
 }
 
 /**
  * Search result interface
  */
 export interface SearchResult {
-  readonly name: string;
-  readonly version: string;
-  readonly description: string;
-}
-
-/**
- * NPM package search result
- */
-export interface NpmSearchResult {
-  readonly name: string;
-  readonly version: string;
-  readonly description?: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  lastUpdated: string;
 }
 
 /**
@@ -96,18 +91,19 @@ export type TargetApp = 'cursor' | 'claude-desktop';
  * Versioned configuration interface
  */
 export interface VersionedConfig<T> {
-  readonly version: number;
-  readonly data: T;
+  version: number;
+  data: T;
 }
 
 /**
- * Server information interface
+ * NPM package search result
  */
-export interface ServerInfo {
-  readonly name: string;
-  readonly type: ServerType;
-  readonly command: string;
-  readonly args: readonly string[];
-  readonly env: Readonly<Record<string, string>>;
-  readonly source?: 'global' | 'cursor' | 'both';
+export interface NpmSearchResult {
+  name: string;
+  version: string;
+  description?: string;
+  author?: {
+    name: string;
+  };
+  date?: string;
 } 

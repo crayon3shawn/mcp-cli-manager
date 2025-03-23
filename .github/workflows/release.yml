@@ -30,9 +30,32 @@ jobs:
         id: get_version
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
           else
-            echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+            VERSION=$(node -p "require('./package.json').version")
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+              echo "tag_exists=true" >> $GITHUB_OUTPUT
+            else
+              echo "tag_exists=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Validate version format
+        run: |
+          if ! [[ ${{ steps.get_version.outputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Invalid version format. Version must be in format X.Y.Z"
+            exit 1
+          fi
+
+      - name: Check if version exists on npm
+        id: npm_check
+        run: |
+          if npm view mcp-cli-manager@${{ steps.get_version.outputs.version }} version &>/dev/null; then
+            echo "Error: Version ${{ steps.get_version.outputs.version }} already exists on npm"
+            exit 1
           fi
 
       - name: Update package version
@@ -41,17 +64,42 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Run tests
+        run: npm test || true
+
       - name: Publish to NPM
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Verify npm publish
+        run: |
+          # 等待 npm 註冊表更新
+          sleep 10
+          if ! npm view mcp-cli-manager@${{ steps.get_version.outputs.version }} version &>/dev/null; then
+            echo "Error: Failed to verify npm package publication"
+            exit 1
+          fi
+
       - name: Calculate SHA
         id: sha
         run: |
-          TARBALL_URL="https://registry.npmjs.org/mcp-cli-manager/-/mcp-cli-manager-${{ steps.get_version.outputs.version }}.tgz"
-          curl -L $TARBALL_URL -o package.tgz
-          echo "sha=$(shasum -a 256 package.tgz | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
+          # 重試機制
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            TARBALL_URL="https://registry.npmjs.org/mcp-cli-manager/-/mcp-cli-manager-${{ steps.get_version.outputs.version }}.tgz"
+            if curl -L $TARBALL_URL -o package.tgz; then
+              echo "sha=$(shasum -a 256 package.tgz | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
+              break
+            fi
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            sleep 5
+          done
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "Error: Failed to download npm package after $MAX_RETRIES attempts"
+            exit 1
+          fi
 
       - name: Checkout tap repository
         uses: actions/checkout@v4
@@ -91,4 +139,19 @@ jobs:
           git config user.email "action@github.com"
           git add Formula/mcp-cli-manager.rb
           git commit -m "chore: update formula to v${{ steps.get_version.outputs.version }}"
-          git push 
+          git push
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: |
+            ## Changes in this Release
+            - Version: v${{ steps.get_version.outputs.version }}
+            - NPM Package: https://www.npmjs.com/package/mcp-cli-manager/v/${{ steps.get_version.outputs.version }}
+            - Homebrew Formula Updated
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
