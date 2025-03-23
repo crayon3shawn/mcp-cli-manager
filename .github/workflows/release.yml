@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'
+  repository_dispatch:
+    types:
+      - release
 
 jobs:
   release:
@@ -23,15 +26,20 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build
-        run: npm run build
-
       - name: Get version from tag
         id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+          fi
 
       - name: Update package version
         run: npm version ${{ steps.get_version.outputs.version }} --no-git-tag-version
+
+      - name: Build
+        run: npm run build
 
       - name: Publish to NPM
         run: npm publish

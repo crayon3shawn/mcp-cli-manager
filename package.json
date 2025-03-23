@@ -1,6 +1,6 @@
 {
   "name": "mcp-cli-manager",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "MCP Server Management Tool - A CLI tool for managing Model Context Protocol servers",
   "type": "module",
   "main": "dist/bin/mcp-cli-manager.js",
@@ -46,6 +46,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.11",
     "jest": "^29.7.0",
+    "semver": "^7.6.0",
     "typescript": "^5.8.2"
   }
 }
