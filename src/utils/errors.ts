@@ -3,24 +3,13 @@
  */
 
 /**
- * Base error class for MCP
+ * Base error class for MCP CLI Manager
  */
 export class McpError extends Error {
-  constructor(
-    message: string,
-    public readonly cause?: unknown,
-    name = 'McpError'
-  ) {
+  constructor(message: string, cause?: unknown, type: string = 'McpError') {
     super(message);
-    this.name = name;
-    
-    // Ensure proper prototype chain for instanceof checks
-    Object.setPrototypeOf(this, new.target.prototype);
-    
-    // Capture stack trace
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
+    this.name = type;
+    this.cause = cause;
   }
 }
 

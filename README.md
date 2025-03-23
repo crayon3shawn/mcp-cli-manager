@@ -1,215 +1,115 @@
 # MCP CLI Manager
 
-[English](#english) | [中文](#中文)
-
-<a name="中文"></a>
-# MCP CLI Manager
-
-一個用於管理 MCP Server 的命令行工具。
-
-## 功能特點
-
-- 註冊和管理 MCP Server
-- 支持 npx 和 binary 類型的服務器
-- 自動日誌記錄和管理
-- 服務器狀態監控
-- 全局和本地配置管理
-- 服務器搜索功能
-
-## 安裝
-
-### 使用 npm
-
-```bash
-npm install -g mcp-cli-manager
-```
-
-### 使用 Homebrew
-
-```bash
-brew tap crayon3shawn/tap
-brew install mcp-cli-manager
-```
-
-## 使用方法
-
-### 註冊 MCP Server
-
-```bash
-mcp regist <name>
-```
-
-例如：
-```bash
-mcp register github 
-```
-
-### 啟動 MCP Server
-
-```bash
-mcp start <name>
-```
-
-### 停止 MCP Server
-
-```bash
-mcp stop <name>
-```
-
-### 停止所有 MCP Server
-
-```bash
-mcp stop
-```
-
-### 查看 MCP Server 狀態
-
-```bash
-mcp status
-```
-
-### 列出所有 MCP Server
-
-```bash
-mcp list
-```
-
-### 搜索 MCP Server
-
-```bash
-mcp search <query>
-```
-
-### 同步 MCP Server 配置
-
-```bash
-mcp sync
-```
-
-## 配置
-
-配置文件位於：
-- 全局配置：`~/.cursor/config/global.json`
-- Cursor 配置：`~/.cursor/config/cursor.json`
-
-## 日誌
-
-服務器日誌位於：`~/.cursor/logs/<server-name>.log`
-
-## 開發
-
-```bash
-# 安裝依賴
-npm install
-
-# 構建
-npm run build
-
-# 運行測試
-npm test
-```
-
----
-
-<a name="english"></a>
-# MCP CLI Manager
-
-A command-line tool for managing MCP Servers.
+A powerful CLI tool for managing Model Context Protocol (MCP) servers.
 
 ## Features
 
-- Register and manage MCP Servers
-- Support for npx and binary server types
-- Automatic logging and management
-- Server status monitoring
-- Global and local configuration management
-- Server search functionality
+- 🚀 Easy server management
+- 🔄 Interactive command completion
+- 📊 Detailed progress display
+- 🛠️ Comprehensive error handling
+- 📝 Detailed command documentation
 
 ## Installation
 
-### Using npm
-
 ```bash
 npm install -g mcp-cli-manager
-```
-
-### Using Homebrew
-
-```bash
-brew tap crayon3shawn/tap
-brew install mcp-cli-manager
 ```
 
 ## Usage
 
-### Register MCP Server
-
 ```bash
-mcp register <name> 
+mcp <command> [options]
 ```
 
-Example:
-```bash
-mcp register github 
-```
+### Available Commands
 
-### Start MCP Server
+- `start <server>` - Start a server
+  - `--config <path>` - Specify config file path
+  - `--port <number>` - Specify port number
+  - `--verbose` - Show detailed logs
 
-```bash
-mcp start <name>
-```
+- `stop <server>` - Stop a server
+  - `--force` - Force stop the server
 
-### Stop MCP Server
+- `list` - List all servers
+  - `--status` - Show server status
 
-```bash
-mcp stop <name>
-```
+- `config <server>` - Configure a server
+  - `--interactive` - Interactive configuration mode
 
-### Stop All MCP Servers
-
-```bash
-mcp stop
-```
-
-### Check MCP Server Status
+### Examples
 
 ```bash
-mcp status
-```
+# Start a server
+mcp start my-server --port 3000
 
-### List All MCP Servers
+# Stop a server
+mcp stop my-server
 
-```bash
+# List all servers
 mcp list
+
+# Configure a server
+mcp config my-server --interactive
 ```
-
-### Search MCP Servers
-
-```bash
-mcp search <query>
-```
-
-### Sync MCP Server Configuration
-
-```bash
-mcp sync
-```
-
-## Configuration
-
-Configuration files are located at:
-- Global config: `~/.cursor/config/global.json`
-- Cursor config: `~/.cursor/config/cursor.json`
 
 ## Development
 
-```bash
-# Install dependencies
-npm install
+### Prerequisites
 
-# Build
-npm run build
+- Node.js >= 14.0.0
+- npm >= 6.0.0
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/crayon3shawn/mcp-cli-manager.git
+   cd mcp-cli-manager
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Link the package:
+   ```bash
+   npm link
+   ```
+
+### Development Commands
+
+```bash
+# Start development server
+npm run dev
 
 # Run tests
 npm test
+
+# Format code
+npm run format
+
+# Lint code
+npm run lint
+
+# Check code
+npm run check
 ```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a list of changes.
