@@ -338,4 +338,45 @@
 4. 性能優化
    - 使用 Vitest 的智能緩存
    - 配置測試分組執行
-   - 優化 CI 環境的資源使用 
+   - 優化 CI 環境的資源使用
+
+## 2024-03-26
+
+### pnpm 工作空間設置
+1. 創建了新的目錄結構：
+   ```
+   mcp-cli-manager/
+   ├── packages/
+   │   ├── core/           # 核心功能
+   │   ├── cli/            # CLI 工具
+   │   ├── server/         # 伺服器相關
+   │   └── shared/         # 共享工具和類型
+   ```
+
+2. 添加了 pnpm-workspace.yaml 配置：
+   ```yaml
+   packages:
+     - 'packages/*'
+   ```
+
+### 下一步計劃
+1. [ ] 移動現有代碼到對應的包中
+   - [ ] 將核心功能移至 core 包
+   - [ ] 將 CLI 相關代碼移至 cli 包
+   - [ ] 將伺服器相關代碼移至 server 包
+   - [ ] 將共享工具和類型移至 shared 包
+
+2. [ ] 更新 package.json 文件
+   - [ ] 為每個包創建獨立的 package.json
+   - [ ] 設置正確的依賴關係
+   - [ ] 配置構建和測試腳本
+
+3. [ ] 配置開發工具
+   - [ ] 更新 VS Code 設置
+   - [ ] 配置 TypeScript 路徑
+   - [ ] 設置 ESLint 和 Prettier
+
+4. [ ] 更新 CI/CD 配置
+   - [ ] 修改 GitHub Actions 工作流程
+   - [ ] 更新構建和測試腳本
+   - [ ] 配置版本發布流程 
