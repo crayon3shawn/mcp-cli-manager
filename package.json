@@ -1,9 +1,10 @@
 {
   "name": "mcp-cli-manager",
-  "version": "1.0.7",
+  "version": "1.1.7",
   "description": "MCP Server Management Tool - A CLI tool for managing Model Context Protocol servers",
   "type": "module",
   "main": "dist/bin/mcp-cli-manager.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "mcp": "dist/bin/mcp-cli-manager.js"
   },
@@ -11,14 +12,17 @@
     "build": "tsc",
     "start": "node dist/bin/mcp-cli-manager.js",
     "dev": "tsc --watch",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest",
     "setup": "node scripts/setup.js",
-    "test:coverage": "node scripts/test-helper.js coverage",
     "test:check-coverage": "node scripts/test-helper.js check-coverage",
     "test:cleanup": "node scripts/test-helper.js cleanup",
-    "prepare": "npm run build",
+    "prepare": "pnpm build",
     "posttest": "npm run test:coverage",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
   },
   "keywords": [
     "mcp",
@@ -56,6 +60,18 @@
     "eslint": "^8.57.0",
     "semver": "^7.6.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
-  }
+    "typescript": "^5.3.3",
+    "@vitest/coverage-v8": "^1.3.1",
+    "@vitest/ui": "^1.3.1",
+    "prettier": "^3.2.5",
+    "vitest": "^1.3.1"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "bugs": {
+    "url": "https://github.com/crayon3shawn/mcp-cli-manager/issues"
+  },
+  "homepage": "https://github.com/crayon3shawn/mcp-cli-manager#readme"
 }

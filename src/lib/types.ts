@@ -1,23 +1,24 @@
 /**
- * MCP Type Definitions
+ * MCP Types
  */
 
-/**
- * Server type literals
- */
+import { z } from 'zod';
+import { serverTypeSchema, serverStatusSchema, connectionSchema, serverInfoSchema } from './schemas.ts';
+
+// Base Types
+export type ServerType = z.infer<typeof serverTypeSchema>;
+export type ServerStatus = z.infer<typeof serverStatusSchema>;
+export type Connection = z.infer<typeof connectionSchema>;
+export type ServerInfo = z.infer<typeof serverInfoSchema>;
+
+// Literals
 export const ServerTypeLiterals = {
+  WINDSURF: 'windsurf',
+  CLINE: 'cline',
   NPX: 'npx',
   BINARY: 'binary'
 } as const;
 
-/**
- * Server type
- */
-export type ServerType = typeof ServerTypeLiterals[keyof typeof ServerTypeLiterals];
-
-/**
- * Server status literals
- */
 export const ServerStatusLiterals = {
   RUNNING: 'running',
   STOPPED: 'stopped',
@@ -25,85 +26,99 @@ export const ServerStatusLiterals = {
   STARTING: 'starting'
 } as const;
 
-/**
- * Server status type
- */
-export type ServerStatus = typeof ServerStatusLiterals[keyof typeof ServerStatusLiterals];
+export const ConnectionTypeLiterals = {
+  STDIO: 'stdio',
+  WS: 'ws'
+} as const;
 
-/**
- * Server information interface
- */
-export interface ServerInfo {
-  name: string;
-  type: ServerType;
+// Literal Types
+export type ServerTypeLiterals = typeof ServerTypeLiterals[keyof typeof ServerTypeLiterals];
+export type ServerStatusLiterals = typeof ServerStatusLiterals[keyof typeof ServerStatusLiterals];
+export type ConnectionTypeLiterals = typeof ConnectionTypeLiterals[keyof typeof ConnectionTypeLiterals];
+
+// Configuration Types
+export interface WindsurfConfig {
+  port: number;
+  host: string;
+  options?: Record<string, unknown>;
+}
+
+export interface ClineConfig {
+  port: number;
+  host: string;
+  options?: Record<string, unknown>;
+}
+
+// Connection Types
+export interface StdioConnection {
+  type: 'stdio';
   command: string;
-  args: string[];
-  env: Record<string, string>;
-  source?: 'global' | 'cursor' | 'both';
+  args?: string[];
+  env?: Record<string, string>;
+  config?: WindsurfConfig | ClineConfig;
 }
 
-/**
- * Global configuration interface
- */
-export interface GlobalConfig {
-  servers: Record<string, ServerInfo>;
-  mcpServers?: Record<string, ServerInfo>;
+export interface WSConnection {
+  type: 'ws';
+  url: string;
+  config?: WindsurfConfig | ClineConfig;
 }
 
-/**
- * Configuration paths interface
- */
-export interface ConfigPaths {
-  global: string;
-  cursor: string;
-  claude: string;
-  claudeDesktop: string;
-  vscode: string;
+// Process Types
+export interface ServerProcess {
+  pid: number;
+  status: ServerStatus;
+  startTime: Date;
+  endTime?: Date;
 }
 
-/**
- * Server status information
- */
-export interface ServerStatusInfo {
+export interface ServerLog {
+  level: 'info' | 'warn' | 'error';
+  message: string;
+  timestamp: Date;
+}
+
+export interface ServerMetrics {
+  cpu: number;
+  memory: number;
+  uptime: number;
+}
+
+export interface ServerHealth {
+  status: 'healthy' | 'unhealthy';
+  message?: string;
+  lastCheck: Date;
+}
+
+export interface ServerStats {
+  connections: number;
+  requests: number;
+  errors: number;
+  latency: number;
+}
+
+export interface ServerConfig {
   name: string;
   type: ServerType;
-  status: ServerStatus;
-  startTime: string;
+  connection: Connection;
+  env?: Record<string, string>;
+  timeout?: number;
+  retries?: number;
+  logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  metrics?: boolean;
+  healthCheck?: boolean;
+  stats?: boolean;
 }
 
-/**
- * Search result interface
- */
-export interface SearchResult {
-  name: string;
-  version: string;
-  description: string;
-  author: string;
-  lastUpdated: string;
-}
-
-/**
- * Target application type
- */
-export type TargetApp = 'cursor' | 'claude-desktop';
-
-/**
- * Versioned configuration interface
- */
-export interface VersionedConfig<T> {
-  version: number;
-  data: T;
-}
-
-/**
- * NPM package search result
- */
-export interface NpmSearchResult {
-  name: string;
+export interface ServerMetadata {
   version: string;
   description?: string;
-  author?: {
-    name: string;
-  };
+  author?: string;
+  license?: string;
+  repository?: string;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
+  config?: Record<string, unknown>;
   date?: string;
 } 

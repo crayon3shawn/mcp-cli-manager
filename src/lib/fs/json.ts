@@ -2,7 +2,7 @@
  * JSON File Operations
  */
 
-import { promises as fs } from 'fs';
+import { readFile, writeFile, mkdir, unlink } from 'fs/promises';
 import { dirname } from 'path';
 import { FileSystemError } from '../errors.js';
 
@@ -11,7 +11,7 @@ import { FileSystemError } from '../errors.js';
  */
 export interface JsonReadOptions {
   encoding?: BufferEncoding;
-  reviver?: (key: string, value: unknown) => unknown;
+  flag?: string;
 }
 
 /**
@@ -19,9 +19,8 @@ export interface JsonReadOptions {
  */
 export interface JsonWriteOptions {
   encoding?: BufferEncoding;
-  replacer?: (key: string, value: unknown) => unknown;
-  spaces?: number;
-  ensureDirectory?: boolean;
+  mode?: number;
+  flag?: string;
 }
 
 /**
@@ -38,10 +37,10 @@ const DEFAULT_OPTIONS = {
  */
 async function ensureDir(path: string): Promise<void> {
   try {
-    await fs.mkdir(dirname(path), { recursive: true });
+    await mkdir(dirname(path), { recursive: true });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
-      throw new FileSystemError(`Failed to create directory: ${dirname(path)}`, error);
+      throw error;
     }
   }
 }
@@ -49,46 +48,40 @@ async function ensureDir(path: string): Promise<void> {
 /**
  * Read JSON file
  */
-export async function readJson<T>(
+export async function readJson<T = unknown>(
   path: string,
   options: JsonReadOptions = {}
-): Promise<T | null> {
+): Promise<T> {
   try {
-    const content = await fs.readFile(path, options.encoding ?? DEFAULT_OPTIONS.encoding);
-    return JSON.parse(content, options.reviver) as T;
+    await ensureDir(path);
+    const content = await readFile(path, options);
+    return JSON.parse(content.toString());
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return null;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT' || error instanceof SyntaxError) {
+      const emptyConfig = {
+        version: 1,
+        data: {
+          servers: {},
+          mcpServers: {}
+        }
+      };
+      await writeJson(path, emptyConfig);
+      return emptyConfig as T;
     }
-    throw new FileSystemError(`Failed to read JSON file: ${path}`, error);
+    throw error;
   }
 }
 
 /**
  * Write JSON file
  */
-export async function writeJson<T>(
+export async function writeJson<T = unknown>(
   path: string,
   data: T,
   options: JsonWriteOptions = {}
 ): Promise<void> {
-  try {
-    const {
-      encoding = DEFAULT_OPTIONS.encoding,
-      spaces = DEFAULT_OPTIONS.spaces,
-      replacer,
-      ensureDirectory = DEFAULT_OPTIONS.ensureDirectory
-    } = options;
-
-    if (ensureDirectory) {
-      await ensureDir(path);
-    }
-
-    const content = JSON.stringify(data, replacer, spaces);
-    await fs.writeFile(path, content, encoding);
-  } catch (error) {
-    throw new FileSystemError(`Failed to write JSON file: ${path}`, error);
-  }
+  await ensureDir(path);
+  await writeFile(path, JSON.stringify(data, null, 2), options);
 }
 
 /**
@@ -96,7 +89,7 @@ export async function writeJson<T>(
  */
 export async function jsonExists(path: string): Promise<boolean> {
   try {
-    await fs.access(path);
+    await readFile(path);
     return true;
   } catch {
     return false;
@@ -108,10 +101,10 @@ export async function jsonExists(path: string): Promise<boolean> {
  */
 export async function deleteJson(path: string): Promise<void> {
   try {
-    await fs.unlink(path);
+    await unlink(path);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      throw new FileSystemError(`Failed to delete JSON file: ${path}`, error);
+      throw error;
     }
   }
 } 

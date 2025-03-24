@@ -4,154 +4,49 @@ on:
   push:
     tags:
       - 'v*'
-  repository_dispatch:
-    types:
-      - release
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: '18'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm install
-
-      - name: Get version from tag
-        id: get_version
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            VERSION=${GITHUB_REF#refs/tags/v}
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "tag_exists=true" >> $GITHUB_OUTPUT
-          else
-            VERSION=$(node -p "require('./package.json').version")
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-              echo "tag_exists=true" >> $GITHUB_OUTPUT
-            else
-              echo "tag_exists=false" >> $GITHUB_OUTPUT
-            fi
-          fi
-
-      - name: Validate version format
-        run: |
-          if ! [[ ${{ steps.get_version.outputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Error: Invalid version format. Version must be in format X.Y.Z"
-            exit 1
-          fi
-
-      - name: Check if version exists on npm
-        id: npm_check
-        run: |
-          if npm view mcp-cli-manager@${{ steps.get_version.outputs.version }} version &>/dev/null; then
-            echo "Error: Version ${{ steps.get_version.outputs.version }} already exists on npm"
-            exit 1
-          fi
-
-      - name: Update package version
-        run: npm version ${{ steps.get_version.outputs.version }} --no-git-tag-version
+        run: pnpm install
 
       - name: Build
-        run: npm run build
+        run: pnpm build
 
       - name: Run tests
-        run: npm test || true
+        run: pnpm test
 
-      - name: Publish to NPM
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Verify npm publish
-        run: |
-          # 等待 npm 註冊表更新
-          sleep 10
-          if ! npm view mcp-cli-manager@${{ steps.get_version.outputs.version }} version &>/dev/null; then
-            echo "Error: Failed to verify npm package publication"
-            exit 1
-          fi
-
-      - name: Calculate SHA
-        id: sha
-        run: |
-          # 重試機制
-          MAX_RETRIES=3
-          RETRY_COUNT=0
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            TARBALL_URL="https://registry.npmjs.org/mcp-cli-manager/-/mcp-cli-manager-${{ steps.get_version.outputs.version }}.tgz"
-            if curl -L $TARBALL_URL -o package.tgz; then
-              echo "sha=$(shasum -a 256 package.tgz | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
-              break
-            fi
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            sleep 5
-          done
-          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-            echo "Error: Failed to download npm package after $MAX_RETRIES attempts"
-            exit 1
-          fi
-
-      - name: Checkout tap repository
-        uses: actions/checkout@v4
-        with:
-          repository: crayon3shawn/homebrew-tap
-          token: ${{ secrets.TAP_PAT }}
-          path: homebrew-tap
-
-      - name: Update Homebrew Formula
-        run: |
-          mkdir -p homebrew-tap/Formula
-          cat > homebrew-tap/Formula/mcp-cli-manager.rb << EOL
-          class McpCliManager < Formula
-            desc "A CLI tool for managing MCP projects"
-            homepage "https://github.com/crayon3shawn/mcp-cli-manager"
-            url "https://registry.npmjs.org/mcp-cli-manager/-/mcp-cli-manager-${{ steps.get_version.outputs.version }}.tgz"
-            sha256 "${{ steps.sha.outputs.sha }}"
-            license "MIT"
-
-            depends_on "node"
-
-            def install
-              system "npm", "install", *Language::Node.std_npm_install_args(libexec)
-              bin.install_symlink Dir["#{libexec}/bin/*"]
-            end
-
-            test do
-              assert_match "mcp-cli-manager", shell_output("#{bin}/mcp --version")
-            end
-          end
-          EOL
-
-      - name: Commit and push formula changes
-        run: |
-          cd homebrew-tap
-          git config user.name "GitHub Action"
-          git config user.email "action@github.com"
-          git add Formula/mcp-cli-manager.rb
-          git commit -m "chore: update formula to v${{ steps.get_version.outputs.version }}"
-          git push
-
-      - name: Create GitHub Release
-        if: github.event_name == 'push'
+      - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          name: Release v${{ steps.get_version.outputs.version }}
-          body: |
-            ## Changes in this Release
-            - Version: v${{ steps.get_version.outputs.version }}
-            - NPM Package: https://www.npmjs.com/package/mcp-cli-manager/v/${{ steps.get_version.outputs.version }}
-            - Homebrew Formula Updated
+          files: |
+            dist/**/*
+            README.md
           draft: false
           prerelease: false
+          generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to npm
+        run: pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 

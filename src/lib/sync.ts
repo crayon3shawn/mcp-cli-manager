@@ -1,40 +1,40 @@
 /**
- * MCP Server Synchronization Module
+ * MCP Configuration Sync Module
  */
 
+import { getGlobalConfig, saveGlobalConfig } from './config.js';
 import { readJson, writeJson } from './fs/json.js';
 import { configPaths } from './config/paths.js';
-import { ConfigError } from './errors.js';
-import type { GlobalConfig, TargetApp } from './types.js';
+import type { GlobalConfig, TargetApp, ConfigPaths } from './types.js';
+import { ValidationError } from './errors.js';
 
 /**
- * Synchronize global configuration to target application
+ * Convert target app to config path key
  */
-export const syncConfig = async (target: TargetApp = 'cursor'): Promise<void> => {
+function getConfigPathKey(target: TargetApp): 'cursor' | 'claudeDesktop' {
+  return target === 'claude-desktop' ? 'claudeDesktop' : 'cursor';
+}
+
+/**
+ * Sync configuration with target application
+ */
+export async function syncConfig(target: TargetApp): Promise<void> {
   try {
-    // Read global configuration with default empty servers
-    const globalConfig = await readJson<GlobalConfig>(configPaths.getPath('global')) ?? {
-      mcpServers: {} as const
-    };
+    const globalConfig = await getGlobalConfig();
+    const targetPath = configPaths.getPath(getConfigPathKey(target));
 
-    // Create new target configuration preserving immutability
-    const targetConfig: GlobalConfig = {
-      mcpServers: { ...globalConfig.mcpServers }
-    };
+    // Read target config
+    const targetConfig = await readJson<GlobalConfig>(targetPath) || { servers: {} };
 
-    // Get target config path
-    const targetPath = configPaths.getPath(target === 'claude-desktop' ? 'claudeDesktop' : target);
-    if (!targetPath) {
-      throw new ConfigError(`Unsupported target application: ${target}`);
-    }
-
-    // Write configuration file
+    // Write back to target
     await writeJson(targetPath, targetConfig);
-    console.log(`Configuration synchronized to ${target}`);
   } catch (error) {
-    throw new ConfigError(`Failed to synchronize configuration to ${target}`, error);
+    if (error instanceof Error) {
+      throw new ValidationError(`同步失敗: ${error.message}`);
+    }
+    throw new ValidationError('同步時發生未知錯誤');
   }
-};
+}
 
 /**
  * Synchronize global configuration to Cursor (legacy support)

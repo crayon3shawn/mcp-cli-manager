@@ -1,95 +1,115 @@
 /**
- * MCP Error Types
+ * MCP Error Classes
  */
 
 /**
  * Base error class for MCP
  */
 export class McpError extends Error {
-  constructor(
-    message: string,
-    public readonly cause?: unknown,
-    name = 'McpError'
-  ) {
+  constructor(message: string, public cause?: Error) {
     super(message);
-    this.name = name;
-    
-    // Ensure proper prototype chain for instanceof checks
-    Object.setPrototypeOf(this, new.target.prototype);
-    
-    // Capture stack trace
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
+    this.name = 'McpError';
   }
 }
 
 /**
- * Configuration related errors
+ * Configuration error
  */
 export class ConfigError extends McpError {
-  constructor(message: string, cause?: unknown) {
-    super(message, cause, 'ConfigError');
+  constructor(message: string, cause?: Error) {
+    super(message);
+    this.name = 'ConfigError';
+    this.cause = cause;
   }
 }
 
 /**
- * File system related errors
- */
-export class FileSystemError extends McpError {
-  constructor(message: string, cause?: unknown) {
-    super(message, cause, 'FileSystemError');
-  }
-}
-
-/**
- * Process related errors
- */
-export class ProcessError extends McpError {
-  constructor(message: string, cause?: unknown) {
-    super(message, cause, 'ProcessError');
-  }
-}
-
-/**
- * Search related errors
- */
-export class SearchError extends McpError {
-  constructor(message: string, cause?: unknown) {
-    super(message, cause, 'SearchError');
-  }
-}
-
-/**
- * Status related errors
- */
-export class StatusError extends McpError {
-  constructor(message: string, cause?: unknown) {
-    super(message, cause, 'StatusError');
-  }
-}
-
-/**
- * Validation related errors
+ * Validation error
  */
 export class ValidationError extends McpError {
-  constructor(message: string, cause?: unknown) {
-    super(message, cause, 'ValidationError');
+  constructor(message: string, cause?: Error) {
+    super(message);
+    this.name = 'ValidationError';
+    this.cause = cause;
   }
 }
 
 /**
- * Create an error instance from an unknown error
+ * Server error
  */
-export function createError(
-  error: unknown,
-  defaultMessage = 'An unexpected error occurred',
-  ErrorClass = McpError
-): McpError {
-  if (error instanceof McpError) {
-    return error;
+export class ServerError extends McpError {
+  constructor(message: string, cause?: Error) {
+    super(message);
+    this.name = 'ServerError';
+    this.cause = cause;
   }
+}
 
+/**
+ * Process error
+ */
+export class ProcessError extends McpError {
+  constructor(message: string, cause?: Error) {
+    super(message);
+    this.name = 'ProcessError';
+    this.cause = cause;
+  }
+}
+
+/**
+ * File system error
+ */
+export class FileSystemError extends McpError {
+  constructor(message: string, cause?: Error) {
+    super(message);
+    this.name = 'FileSystemError';
+    this.cause = cause;
+  }
+}
+
+/**
+ * Search error
+ */
+export class SearchError extends McpError {
+  constructor(message: string, cause?: Error) {
+    super(message);
+    this.name = 'SearchError';
+    this.cause = cause;
+  }
+}
+
+/**
+ * Status error
+ */
+export class StatusError extends McpError {
+  constructor(message: string, cause?: Error) {
+    super(message);
+    this.name = 'StatusError';
+    this.cause = cause;
+  }
+}
+
+/**
+ * Create error instance from unknown error
+ */
+export function createError<T extends McpError>(
+  ErrorClass: new (message: string, cause?: Error) => T,
+  error: unknown,
+  defaultMessage = 'Unknown error'
+): T {
   const message = error instanceof Error ? error.message : String(error);
-  return new ErrorClass(message || defaultMessage, error);
-} 
+  const cause = error instanceof Error ? error : undefined;
+  return new ErrorClass(message || defaultMessage, cause);
+}
+
+export default {
+  McpError,
+  ConfigError,
+  ValidationError,
+  ServerError,
+  ProcessError,
+  FileSystemError,
+  SearchError,
+  StatusError,
+  createError
+}; 

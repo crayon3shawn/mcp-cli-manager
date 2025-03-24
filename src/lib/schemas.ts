@@ -3,10 +3,15 @@
  */
 
 import { z } from 'zod';
-import { ServerTypeLiterals, ServerStatusLiterals } from './types.js';
+import { ServerTypeLiterals, ServerStatusLiterals, ConnectionTypeLiterals, type WindsurfConfig, type ClineConfig } from './types.ts';
 
 // Server Type Schema
-export const serverTypeSchema = z.enum([ServerTypeLiterals.NPX, ServerTypeLiterals.BINARY]);
+export const serverTypeSchema = z.enum([
+  ServerTypeLiterals.NPX,
+  ServerTypeLiterals.BINARY,
+  ServerTypeLiterals.WINDSURF,
+  ServerTypeLiterals.CLINE
+]);
 
 // Server Status Schema
 export const serverStatusSchema = z.enum([
@@ -16,22 +21,60 @@ export const serverStatusSchema = z.enum([
   ServerStatusLiterals.STARTING
 ]);
 
+// Connection Type Schema
+export const connectionTypeSchema = z.enum([
+  ConnectionTypeLiterals.STDIO,
+  ConnectionTypeLiterals.WS
+]);
+
+// Windsurf Configuration Schema
+export const windsurfConfigSchema = z.object({
+  port: z.number(),
+  host: z.string(),
+  options: z.record(z.unknown()).optional()
+}) satisfies z.ZodType<WindsurfConfig>;
+
+// Cline Configuration Schema
+export const clineConfigSchema = z.object({
+  port: z.number(),
+  host: z.string(),
+  options: z.record(z.unknown()).optional()
+}) satisfies z.ZodType<ClineConfig>;
+
+// Stdio Connection Schema
+export const stdioConnectionSchema = z.object({
+  type: z.literal(ConnectionTypeLiterals.STDIO),
+  command: z.string().min(1),
+  args: z.array(z.string()).optional(),
+  env: z.record(z.string()).optional(),
+  config: z.union([clineConfigSchema, z.undefined()])
+});
+
+// WebSocket Connection Schema
+export const wsConnectionSchema = z.object({
+  type: z.literal(ConnectionTypeLiterals.WS),
+  url: z.string().url(),
+  config: z.union([windsurfConfigSchema, z.undefined()])
+});
+
+// Connection Schema
+export const connectionSchema = z.discriminatedUnion('type', [
+  stdioConnectionSchema,
+  wsConnectionSchema
+]);
+
 // Server Configuration Schema
 export const mcpServerSchema = z.object({
   name: z.string().min(1),
   type: serverTypeSchema,
-  command: z.string().min(1),
-  args: z.array(z.string()),
-  env: z.record(z.string())
+  connection: connectionSchema
 });
 
 // Server Information Schema
 export const serverInfoSchema = z.object({
   name: z.string().min(1),
   type: serverTypeSchema,
-  command: z.string().min(1),
-  args: z.array(z.string()),
-  env: z.record(z.string()),
+  connection: connectionSchema,
   source: z.enum(['global', 'cursor', 'both']).optional()
 });
 

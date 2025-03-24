@@ -2,21 +2,20 @@
  * MCP Server Installation Module
  */
 
-import { execa } from 'execa';
+import { execa, type ExecaReturnValue } from 'execa';
 import kleur from 'kleur';
 import boxen from 'boxen';
 import ora from 'ora';
-import { getGlobalConfig, saveGlobalConfig } from './config.js';
-import { ServerInfo, ServerTypeLiterals, type ServerType } from './types.js';
-import { ValidationError } from './errors.js';
-import { serverInfoSchema } from './schemas.js';
+import { getGlobalConfig, saveGlobalConfig } from './config.ts';
+import { ServerInfo, ServerTypeLiterals, type ServerType, type Connection } from './types.ts';
+import { ValidationError } from './errors.ts';
+import { serverInfoSchema, windsurfConfigSchema, clineConfigSchema } from './schemas.ts';
 
 /**
  * Install server options
  */
 interface ServerOptions {
-  env?: Record<string, string>;
-  args?: string[];
+  connection: Connection;
 }
 
 /**
@@ -25,8 +24,7 @@ interface ServerOptions {
 export const installServer = async (
   name: string,
   type: ServerType,
-  args: string[] = [],
-  env: Record<string, string> = {}
+  connection: Connection
 ): Promise<ServerInfo> => {
   const spinner = ora('正在安裝伺服器...').start();
 
@@ -35,35 +33,68 @@ export const installServer = async (
     const serverInfo: ServerInfo = {
       name,
       type,
-      command: name,
-      env,
-      args
+      connection
     };
     
     serverInfoSchema.parse(serverInfo);
 
+    // Validate configuration based on server type
+    if (type === ServerTypeLiterals.WINDSURF) {
+      if (!connection.config) {
+        throw new Error('無效的配置');
+      }
+      try {
+        windsurfConfigSchema.parse(connection.config);
+      } catch (error) {
+        throw new Error('無效的配置');
+      }
+    } else if (type === ServerTypeLiterals.CLINE) {
+      if (!connection.config) {
+        throw new Error('無效的配置');
+      }
+      try {
+        clineConfigSchema.parse(connection.config);
+      } catch (error) {
+        throw new Error('無效的配置');
+      }
+    }
+
     // Install package if it's an npx type
     if (type === ServerTypeLiterals.NPX) {
       spinner.text = `正在安裝 ${kleur.blue(name)}...`;
-      await execa('npm', ['install', '-g', name], {
-        stdio: 'inherit'
-      });
+      try {
+        const { stdout, stderr } = await execa('npm', ['install', '-g', name], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          encoding: 'buffer'
+        });
+        
+        if (stderr) {
+          console.warn(kleur.yellow(stderr.toString()));
+        }
+      } catch (error: unknown) {
+        spinner.fail('安裝失敗');
+        if (error instanceof Error) {
+          throw new ValidationError(`安裝 ${name} 失敗: ${error.message}`);
+        } else {
+          throw new ValidationError(`安裝 ${name} 失敗: 未知錯誤`);
+        }
+      }
     }
 
     // Update global config
     spinner.text = '正在更新配置...';
-    const config = await getGlobalConfig();
-    if (!config.servers) {
-      config.servers = {};
+    const globalConfig = await getGlobalConfig();
+    if (!globalConfig.servers) {
+      globalConfig.servers = {};
     }
-    config.servers[name] = serverInfo;
-    await saveGlobalConfig(config);
+    globalConfig.servers[name] = serverInfo;
+    await saveGlobalConfig(globalConfig);
 
     spinner.succeed('安裝成功');
     console.log(boxen(
       `成功安裝伺服器 ${kleur.green(name)}\n` +
       `類型: ${kleur.blue(type)}\n` +
-      `命令: ${kleur.yellow(name)}`,
+      `連接類型: ${kleur.yellow(connection.type)}`,
       {
         padding: 1,
         margin: 1,
@@ -145,9 +176,10 @@ export const uninstallServer = async (name: string): Promise<void> => {
 
     // Uninstall package if it's an npx type
     if (server.type === ServerTypeLiterals.NPX) {
-      spinner.text = `正在移除 ${kleur.blue(server.command)}...`;
-      await execa('npm', ['uninstall', '-g', server.command], {
-        stdio: 'inherit'
+      spinner.text = `正在移除 ${kleur.blue(server.name)}...`;
+      await execa('npm', ['uninstall', '-g', server.name], {
+        stdio: 'inherit',
+        encoding: 'buffer'
       });
     }
 

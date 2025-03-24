@@ -5,29 +5,34 @@
 import kleur from 'kleur';
 import boxen from 'boxen';
 import npmRegistryFetch from 'npm-registry-fetch';
-import { SearchResult } from './types.js';
+import { SearchResult, NpmSearchResult } from './types.js';
+import { ValidationError } from './errors.js';
 
 /**
  * Search for MCP servers
  */
-export const searchServers = async (query: string): Promise<SearchResult[]> => {
+export async function searchServers(query: string): Promise<SearchResult[]> {
   try {
-    const results = await npmRegistryFetch.search(`mcp-${query}`);
-    
-    return results.map((pkg: any) => ({
-      name: pkg.name,
-      version: pkg.version,
-      description: pkg.description || 'No description available',
-      author: pkg.author?.name || 'Unknown',
-      lastUpdated: new Date(pkg.date).toLocaleDateString()
+    const searchQuery = query.startsWith('@modelcontextprotocol/server-')
+      ? query.replace('@modelcontextprotocol/server-', '')
+      : query;
+    const response = await npmRegistryFetch.json(`/-/v1/search?text=@modelcontextprotocol/server-${searchQuery}`) as { objects: Array<{ package: NpmSearchResult }> };
+    const objects = response.objects || [];
+
+    return objects.map((obj: { package: NpmSearchResult }) => ({
+      name: obj.package.name,
+      version: obj.package.version,
+      description: obj.package.description || '',
+      author: obj.package.author?.name || 'Unknown',
+      lastUpdated: obj.package.date || ''
     }));
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`搜尋失敗: ${error.message}`);
+      throw new ValidationError(`搜尋失敗: ${error.message}`);
     }
-    throw new Error('搜尋時發生未知錯誤');
+    throw new ValidationError('搜尋時發生未知錯誤');
   }
-};
+}
 
 /**
  * Format search results for display
@@ -61,4 +66,8 @@ export const formatSearchResults = (results: SearchResult[]): string => {
     borderStyle: 'round',
     borderColor: 'blue'
   });
+};
+
+export default {
+  searchServers
 }; 

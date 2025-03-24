@@ -6,18 +6,17 @@
 
 import { Command } from 'commander';
 import pkg from '../../package.json' with { type: 'json' };
-import { registerServer, unregisterServer, getServerInfo, getInstalledServers } from '../lib/install.js';
-import { runServer, stopServer, stopAllServers } from '../lib/process.js';
-import { searchServers, formatSearchResults } from '../lib/search.js';
+import { installServer, uninstallServer, getServerInfo, getInstalledServers } from '../lib/install.js';
+import { startServer, stopServer } from '../lib/process.js';
+import { searchServers } from '../lib/search.js';
 import { syncConfig } from '../lib/sync.js';
 import { listServers } from '../lib/list.js';
-import type { ServerType, TargetApp } from '../lib/types.js';
+import { ConnectionTypeLiterals } from '../lib/types.js';
+import type { ServerType, TargetApp, Connection } from '../lib/types.js';
 import { createInterface } from 'node:readline';
 import { stdin, stdout, exit } from 'node:process';
 import { getGlobalConfig, saveGlobalConfig } from '../lib/config.js';
-import { startServer } from '../lib/process.js';
 import { getServerStatus } from '../lib/status.js';
-import { installServer, uninstallServer } from '../lib/install.js';
 
 const program = new Command();
 
@@ -31,15 +30,34 @@ program
   .command('install')
   .description('Search and install a new MCP server')
   .argument('[keyword]', 'Search keyword')
+  .option('-d, --directory <directory>', 'Allowed directory for filesystem server')
   .action(async (keyword: string = '', options: any) => {
     try {
       if (!keyword) {
         // 如果沒有提供關鍵字，顯示所有可用的服務器
         const results = await searchServers('');
         console.log('Available MCP Servers:');
-        console.log(formatSearchResults(results));
+        console.log(results);
         console.log('\nUsage: mcp install <keyword>');
         return;
+      }
+
+      // 如果是完整的包名，直接安裝
+      if (keyword.startsWith('@modelcontextprotocol/server-')) {
+        try {
+          const args = options.directory ? [options.directory] : ['.'];
+          const connection: Connection = {
+            type: ConnectionTypeLiterals.STDIO,
+            command: keyword,
+            args
+          };
+          await installServer(keyword, 'npx', connection);
+          console.log(`Server installed: ${keyword}`);
+          return;
+        } catch (error) {
+          console.error('Installation failed:', error instanceof Error ? error.message : String(error));
+          exit(1);
+        }
       }
 
       // 搜尋服務器
@@ -93,18 +111,20 @@ program
             return;
           }
 
-          const name = selectedServer.name;
           try {
             // 如果包名已經包含 @modelcontextprotocol/server- 前綴，就不需要再添加
-            const packageName = name.startsWith('@modelcontextprotocol/server-') 
-              ? name 
-              : `@modelcontextprotocol/server-${name}`;
+            const packageName = selectedServer.name.startsWith('@modelcontextprotocol/server-') 
+              ? selectedServer.name 
+              : `@modelcontextprotocol/server-${selectedServer.name}`;
 
-            await registerServer(name, 'npx', 'npx', {
-              args: [packageName],
-              env: {}
-            });
-            console.log(`Server installed: ${name}`);
+            const args = options.directory ? [options.directory] : ['.'];
+            const connection: Connection = {
+              type: ConnectionTypeLiterals.STDIO,
+              command: packageName,
+              args
+            };
+            await installServer(packageName, 'npx', connection);
+            console.log(`Server installed: ${packageName}`);
           } catch (error) {
             console.error('Installation failed:', error instanceof Error ? error.message : String(error));
             exit(1);
@@ -124,7 +144,7 @@ program
   .argument('<n>', 'Server name')
   .action(async (name: string) => {
     try {
-      await unregisterServer(name);
+      await uninstallServer(name);
       console.log(`Server uninstalled: ${name}`);
     } catch (error) {
       console.error('Uninstallation failed:', error instanceof Error ? error.message : String(error));
@@ -154,7 +174,7 @@ program
   .action(async (keyword: string = '') => {
     try {
       const results = await searchServers(keyword);
-      console.log(formatSearchResults(results));
+      console.log(results);
     } catch (error) {
       console.error('Search failed:', error instanceof Error ? error.message : String(error));
       exit(1);
@@ -172,7 +192,7 @@ program
       if (!server) {
         throw new Error(`Server not found: ${name}`);
       }
-      await runServer(name);
+      await startServer(name);
     } catch (error) {
       console.error('Failed to start server:', error instanceof Error ? error.message : String(error));
       exit(1);
@@ -183,13 +203,20 @@ program
 program
   .command('stop')
   .description('Stop an MCP server')
-  .argument('[name]', 'Server name (stop all if not specified)')
+  .argument('[name]', 'Server name')
   .action(async (name?: string) => {
     try {
       if (name) {
         await stopServer(name);
       } else {
-        await stopAllServers();
+        // Stop all running servers
+        const servers = await getInstalledServers();
+        for (const server of servers) {
+          const status = await getServerStatus(server.name);
+          if (status === 'running') {
+            await stopServer(server.name);
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to stop server:', error instanceof Error ? error.message : String(error));

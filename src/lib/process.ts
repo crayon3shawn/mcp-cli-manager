@@ -2,256 +2,197 @@
  * MCP Server Process Management Module
  */
 
-import { spawn, type ChildProcess, type SpawnOptionsWithoutStdio } from 'child_process';
-import { join } from 'path';
-import { createWriteStream, type WriteStream, existsSync, mkdirSync } from 'fs';
-import { configPaths } from './config/paths.js';
-import { ProcessError } from './errors.js';
-import { ServerStatusLiterals, type ServerInfo, type McpServer, type ServerStatusInfo } from './types.js';
-import { getRegisteredServers, getServerInfo } from './regist.js';
-import { getServerStatus } from './status.js';
-import { getInstalledServers } from './install.js';
+import { execa, type ExecaChildProcess } from 'execa';
+import { ServerTypeLiterals, ConnectionTypeLiterals, type ServerInfo, type Connection, type ServerStatus } from './types.js';
+import { ValidationError } from './errors.js';
+import { serverInfoSchema } from './schemas.js';
+import { getGlobalConfig, saveGlobalConfig } from './config.js';
+import ora from 'ora';
+import kleur from 'kleur';
+import boxen from 'boxen';
 
-/**
- * Server process type with additional metadata
- */
-interface ServerProcess extends ChildProcess {
+// Store running processes
+export const runningProcesses = new Map<string, {
+  process: ExecaChildProcess;
   startTime: string;
-  logStream?: WriteStream;
-}
+}>();
 
 /**
- * Server process state
+ * Start a server
  */
-interface ServerState {
-  process: ServerProcess;
-  logFile: string;
-}
-
-/**
- * Date format options for timestamps
- */
-const DATE_FORMAT_OPTIONS = {
-  hour12: false,
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit'
-} as const;
-
-/**
- * Process spawn options
- */
-const SPAWN_OPTIONS = {
-  detached: true,
-  stdio: 'pipe',
-  shell: true,
-} as const;
-
-// Server process management
-const serverProcesses = new Map<string, ServerState>();
-
-/**
- * Add timestamp to log entries
- */
-const logWithTimestamp = (data: string): string => {
-  const timestamp = new Date().toISOString();
-  return `[${timestamp}] ${data}`;
-};
-
-/**
- * Setup process event handlers
- */
-const setupProcessHandlers = (
-  childProcess: ServerProcess,
-  server: ServerInfo,
-  logStream: WriteStream
-): void => {
-  const cleanup = () => {
-    serverProcesses.delete(server.name);
-    logStream.end();
-  };
-
-  let isStarted = false;
-
-  childProcess.stdout?.on('data', (data) => {
-    const message = data.toString();
-    logStream.write(logWithTimestamp(message));
-    if (!isStarted && message.includes('Available on:')) {
-      isStarted = true;
-      childProcess.startTime = new Date().toLocaleString('en-US', DATE_FORMAT_OPTIONS);
-    }
-  });
-
-  childProcess.stderr?.on('data', (data) => {
-    const message = data.toString();
-    logStream.write(logWithTimestamp(`[ERROR] ${message}`));
-    if (!isStarted && message.includes('Available on:')) {
-      isStarted = true;
-      childProcess.startTime = new Date().toLocaleString('en-US', DATE_FORMAT_OPTIONS);
-    }
-  });
-
-  childProcess.on('error', (error) => {
-    const errorMessage = `Server error (${server.name}): ${error.message}`;
-    console.error(errorMessage);
-    logStream.write(logWithTimestamp(`[FATAL] ${error.message}\n`));
-    cleanup();
-    throw new ProcessError(errorMessage, error);
-  });
-
-  childProcess.on('exit', (code) => {
-    const exitMessage = `Server stopped (${server.name}) with code: ${code}`;
-    console.log(exitMessage);
-    logStream.write(logWithTimestamp(`[EXIT] Process exited with code ${code}\n`));
-    cleanup();
-  });
-};
-
-const checkStarted = (proc: ChildProcess, logStream: WriteStream): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error('Server failed to start within timeout'));
-    }, 10000);
-
-    proc.stdout?.on('data', (data: Buffer) => {
-      const output = data.toString();
-      logStream.write(`[${new Date().toISOString()}] ${output}`);
-      
-      // Check for successful start message
-      if (output.includes('Available on:')) {
-        clearTimeout(timeout);
-        resolve();
-      }
-    });
-
-    proc.stderr?.on('data', (data: Buffer) => {
-      const error = data.toString();
-      logStream.write(`[${new Date().toISOString()}] [ERROR] ${error}`);
-    });
-
-    proc.on('error', (error: Error) => {
-      logStream.write(`[${new Date().toISOString()}] [ERROR] ${error.message}\n`);
-      clearTimeout(timeout);
-      reject(error);
-    });
-
-    proc.on('exit', (code: number | null) => {
-      logStream.write(`[${new Date().toISOString()}] [EXIT] Process exited with code ${code}\n`);
-      if (code !== 0) {
-        clearTimeout(timeout);
-        reject(new Error(`Process exited with code ${code}`));
-      }
-    });
-  });
-};
-
-/**
- * Run a server
- */
-export const runServer = async (serverName: string): Promise<ServerStatusInfo> => {
-  const server = await getServerInfo(serverName);
-  if (!server) {
-    throw new Error(`Server ${serverName} not found`);
-  }
-
-  const logsDir = join(configPaths.getPath('global'), '..', 'logs');
-  const logPath = join(logsDir, `${serverName}.log`);
-  
-  // Create logs directory if it doesn't exist
-  if (!existsSync(logsDir)) {
-    mkdirSync(logsDir, { recursive: true });
-  }
-
-  // Create write stream for logs
-  const logStream = createWriteStream(logPath, { flags: 'a' });
+export const startServer = async (name: string): Promise<void> => {
+  const spinner = ora('正在啟動伺服器...').start();
 
   try {
-    let command: string;
-    let args: readonly string[];
+    const config = await getGlobalConfig();
+    if (!config.servers) {
+      spinner.fail('伺服器不存在');
+      throw new ValidationError(`伺服器 ${name} 不存在`);
+    }
+    const server = config.servers[name];
 
-    if (server.type === 'npx') {
-      command = 'npx';
-      args = [server.command, ...server.args];
-    } else {
-      command = server.command;
-      args = server.args;
+    if (!server) {
+      spinner.fail('伺服器不存在');
+      throw new ValidationError(`伺服器 ${name} 不存在`);
     }
 
-    const proc = spawn(command, [...args], SPAWN_OPTIONS);
-    
-    // Wait for server to start
-    await checkStarted(proc, logStream);
-    
+    // Validate server info
+    const serverInfo = serverInfoSchema.parse(server);
+
+    // Check if server is already running
+    if (runningProcesses.has(name)) {
+      spinner.fail('伺服器已在運行中');
+      throw new ValidationError(`伺服器 ${name} 已在運行中`);
+    }
+
+    // Start server based on connection type
+    let process: ExecaChildProcess;
+    if (serverInfo.connection.type === ConnectionTypeLiterals.STDIO) {
+      const stdioConnection = serverInfo.connection;
+      process = execa(stdioConnection.command, stdioConnection.args || [], {
+        env: stdioConnection.env,
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+    } else if (serverInfo.connection.type === ConnectionTypeLiterals.WS) {
+      const wsConnection = serverInfo.connection;
+      // For WebSocket connections, we need to start a proxy process
+      // This is a placeholder - actual implementation will depend on the specific WebSocket server
+      process = execa('node', ['-e', `
+        const WebSocket = require('ws');
+        const ws = new WebSocket('${wsConnection.url}');
+        ws.on('open', () => {
+          console.log('Connected to WebSocket server');
+        });
+        ws.on('error', (error) => {
+          console.error('WebSocket error:', error);
+          process.exit(1);
+        });
+      `], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+    } else {
+      throw new ValidationError(`不支援的連接類型: ${(serverInfo.connection as Connection).type}`);
+    }
+
     // Store process info
-    const serverInfo: ServerStatusInfo = {
-      name: serverName,
-      type: server.type,
-      status: ServerStatusLiterals.RUNNING,
-      startTime: new Date().toISOString(),
-    };
-    
-    return serverInfo;
+    runningProcesses.set(name, {
+      process,
+      startTime: new Date().toISOString()
+    });
+
+    // Handle process events
+    process.stdout?.on('data', (data) => {
+      console.log(kleur.blue(`[${name}] ${data}`));
+    });
+
+    process.stderr?.on('data', (data) => {
+      console.warn(kleur.yellow(`[${name}] ${data}`));
+    });
+
+    process.on('error', (error) => {
+      console.error(kleur.red(`[${name}] 錯誤: ${error.message}`));
+      runningProcesses.delete(name);
+    });
+
+    process.on('exit', (code) => {
+      if (code !== 0) {
+        console.error(kleur.red(`[${name}] 進程異常退出，退出碼: ${code}`));
+      }
+      runningProcesses.delete(name);
+    });
+
+    spinner.succeed('啟動成功');
+    console.log(boxen(
+      `成功啟動伺服器 ${kleur.green(name)}\n` +
+      `類型: ${kleur.blue(serverInfo.type)}\n` +
+      `連接類型: ${kleur.yellow(serverInfo.connection.type)}`,
+      {
+        padding: 1,
+        margin: 1,
+        borderStyle: 'round',
+        borderColor: 'green'
+      }
+    ));
   } catch (error) {
-    logStream.write(`[${new Date().toISOString()}] [FATAL] ${error}\n`);
-    throw error;
-  } finally {
-    // Keep log stream open for process output
+    spinner.fail('啟動失敗');
+    if (error instanceof Error) {
+      throw new ValidationError(`啟動失敗: ${error.message}`);
+    }
+    throw new ValidationError('啟動時發生未知錯誤');
   }
 };
 
 /**
  * Stop a server
  */
-export const stopServer = async (serverName: string): Promise<void> => {
-  const server = await getServerInfo(serverName);
-  if (!server) {
-    return;
+export const stopServer = async (name: string): Promise<void> => {
+  const spinner = ora('正在停止伺服器...').start();
+
+  try {
+    const processInfo = runningProcesses.get(name);
+    if (!processInfo) {
+      spinner.fail('伺服器未運行');
+      throw new ValidationError(`伺服器 ${name} 未運行`);
+    }
+
+    // Kill process
+    processInfo.process.kill();
+    runningProcesses.delete(name);
+
+    spinner.succeed('停止成功');
+    console.log(boxen(
+      `成功停止伺服器 ${kleur.green(name)}`,
+      {
+        padding: 1,
+        margin: 1,
+        borderStyle: 'round',
+        borderColor: 'green'
+      }
+    ));
+  } catch (error) {
+    spinner.fail('停止失敗');
+    if (error instanceof Error) {
+      throw new ValidationError(`停止失敗: ${error.message}`);
+    }
+    throw new ValidationError('停止時發生未知錯誤');
+  }
+};
+
+/**
+ * Get server status
+ */
+export const getServerStatus = async (name: string): Promise<ServerStatus> => {
+  const processInfo = runningProcesses.get(name);
+  if (!processInfo) {
+    return 'stopped';
   }
 
   try {
-    const processes = await import('node:process');
-    processes.kill(processes.pid);
-  } catch (error) {
-    console.error(`Failed to stop server ${serverName}:`, error);
+    // Check if process is still running
+    processInfo.process.kill(0);
+    return 'running';
+  } catch {
+    runningProcesses.delete(name);
+    return 'stopped';
   }
 };
 
 /**
- * Stop all running servers
+ * Get all running servers
  */
-export const stopAllServers = async (): Promise<void> => {
-  const servers = await getRegisteredServers();
-  await Promise.all(
-    servers.map((server) => stopServer(server.name))
-  );
+export const getRunningServers = async (): Promise<Array<{ name: string; status: ServerStatus; startTime: string }>> => {
+  const servers = Array.from(runningProcesses.entries()).map(([name, info]) => ({
+    name,
+    status: 'running' as const,
+    startTime: info.startTime
+  }));
+
+  return servers;
 };
 
-/**
- * Get server process
- */
-export function getServerProcess(name: string): ServerProcess | null {
-  return serverProcesses.get(name)?.process ?? null;
-}
-
-/**
- * Get all running server names
- */
-export const getRunningServers = (): string[] => 
-  Array.from(serverProcesses.keys());
-
-// Process cleanup
-const cleanup = async () => {
-  console.log('\nCleaning up servers...');
-  await stopAllServers();
-  process.exit(0);
-};
-
-// Handle process events
-process.on('exit', stopAllServers);
-process.on('SIGINT', cleanup);
-
-const validateServer = (server: McpServer): void => {
-  // ... existing code ...
+export default {
+  startServer,
+  stopServer,
+  getServerStatus,
+  getRunningServers
 }; 
