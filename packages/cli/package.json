@@ -1,0 +1,33 @@
+{
+  "name": "@mcp-cli-manager/cli",
+  "version": "1.0.0",
+  "description": "CLI interface for MCP CLI Manager",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mcp-cli-manager": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@mcp-cli-manager/core": "workspace:*",
+    "@mcp-cli-manager/server": "workspace:*",
+    "@mcp-cli-manager/shared": "workspace:*",
+    "commander": "^12.0.0",
+    "ora": "^8.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2",
+    "@vitest/coverage-v8": "^1.2.2",
+    "eslint": "^8.56.0",
+    "rimraf": "^5.0.5"
+  }
+} 

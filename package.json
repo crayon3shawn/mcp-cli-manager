@@ -1,77 +1,23 @@
 {
   "name": "mcp-cli-manager",
   "version": "1.1.7",
-  "description": "MCP Server Management Tool - A CLI tool for managing Model Context Protocol servers",
-  "type": "module",
-  "main": "dist/bin/mcp-cli-manager.js",
-  "types": "dist/index.d.ts",
-  "bin": {
-    "mcp": "dist/bin/mcp-cli-manager.js"
-  },
+  "private": true,
+  "description": "MCP CLI Manager - A tool for managing MCP servers",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/bin/mcp-cli-manager.js",
-    "dev": "tsc --watch",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui",
-    "test:watch": "vitest",
-    "setup": "node scripts/setup.js",
-    "test:check-coverage": "node scripts/test-helper.js check-coverage",
-    "test:cleanup": "node scripts/test-helper.js cleanup",
-    "prepare": "pnpm build",
-    "posttest": "npm run test:coverage",
-    "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
-  },
-  "keywords": [
-    "mcp",
-    "cli",
-    "server",
-    "manager",
-    "model-context-protocol"
-  ],
-  "author": "crayon3shawn",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/crayon3shawn/mcp-cli-manager.git"
-  },
-  "engines": {
-    "node": ">=14.0.0"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.6.1",
-    "chalk": "^5.3.0",
-    "commander": "^11.1.0",
-    "inquirer": "^9.2.12",
-    "zod": "^3.22.4",
-    "kleur": "^4.1.5",
-    "boxen": "^7.1.1",
-    "npm-registry-fetch": "^16.0.0",
-    "execa": "^8.0.1",
-    "ora": "^7.0.1"
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:watch": "pnpm -r test:watch",
+    "test:coverage": "pnpm -r test:coverage",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r clean",
+    "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.7",
-    "@types/node": "^20.11.24",
-    "@typescript-eslint/eslint-plugin": "^7.1.0",
-    "@typescript-eslint/parser": "^7.1.0",
-    "eslint": "^8.57.0",
-    "semver": "^7.6.0",
-    "ts-node": "^10.9.2",
+    "@types/node": "^20.11.19",
     "typescript": "^5.3.3",
-    "@vitest/coverage-v8": "^1.3.1",
-    "@vitest/ui": "^1.3.1",
-    "prettier": "^3.2.5",
-    "vitest": "^1.3.1"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "bugs": {
-    "url": "https://github.com/crayon3shawn/mcp-cli-manager/issues"
-  },
-  "homepage": "https://github.com/crayon3shawn/mcp-cli-manager#readme"
+    "vitest": "^1.2.2",
+    "@vitest/coverage-v8": "^1.2.2",
+    "eslint": "^8.56.0",
+    "rimraf": "^5.0.5"
+  }
 }

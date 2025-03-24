@@ -379,4 +379,33 @@
 4. [ ] 更新 CI/CD 配置
    - [ ] 修改 GitHub Actions 工作流程
    - [ ] 更新構建和測試腳本
+   - [ ] 配置版本發布流程
+
+### 重構進度
+1. [x] 創建了新的目錄結構
+2. [x] 添加了 pnpm-workspace.yaml 配置
+3. [x] 創建了各個包的 package.json
+4. [x] 創建了各個包的 tsconfig.json
+5. [x] 移動了共享類型和工具到 shared 包
+6. [x] 移動了核心功能到 core 包
+7. [x] 創建了 server 包的基本結構
+8. [x] 創建了 cli 包的基本結構
+
+### 待解決問題
+1. [ ] 修復 linter 錯誤
+   - [ ] 修復 core 包中的 getServerStatus 導出衝突
+   - [ ] 修復 server 包中的模組導入錯誤
+   - [ ] 修復 cli 包中的模組導入錯誤
+
+2. [ ] 移動測試文件
+   - [ ] 將測試文件移動到對應的包中
+   - [ ] 更新測試配置
+
+3. [ ] 更新構建配置
+   - [ ] 配置 TypeScript 構建
+   - [ ] 配置測試環境
+   - [ ] 配置 linting
+
+4. [ ] 更新 CI/CD
+   - [ ] 更新 GitHub Actions 工作流程
    - [ ] 配置版本發布流程 
