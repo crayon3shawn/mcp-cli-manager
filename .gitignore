@@ -1,10 +1,9 @@
 # Dependencies
 node_modules/
+.pnpm-store/
 package-lock.json
 yarn.lock
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+pnpm-debug.log*
 
 # Documentation
 docs/
@@ -37,7 +36,6 @@ Thumbs.db
 # Logs and debugging
 logs/
 *.log
-npm-debug.log*
 
 # Runtime data
 pids/
@@ -71,56 +69,59 @@ temp/
 *.tmp
 *.temp
 
+# Cache
+.cache/
+
 # Local configuration
 .env
 .env.local
 .env.*.local
 
-# 系統生成的目錄
+# System generated directories
 /logs/*
 !logs/.gitkeep
 
-# 環境配置
+# Environment configuration
 .env
 .env.*
 !.env.example
 
-# 開發環境
+# Development environment
 /temp
 /node_modules
 
-# 配置文件
+# Configuration files
 config.yaml
 servers.yaml
 /.env
 
-# 但保留示例文件
+# But keep example files
 !config.yaml.example
 !servers.yaml.example
 !.env.example
 
-# IDE 和編輯器
+# IDE and editors
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
 
-# 依賴鎖定文件
+# Dependency lock files
 yarn.lock
 
-# 測試覆蓋率報告
+# Test coverage reports
 coverage/
 
-# 構建輸出
+# Build outputs
 dist/
 build/
 
-# 依賴鎖定文件
+# Dependency lock files
 package-lock.json
 yarn.lock
 
-# 測試覆蓋率報告
+# Test coverage reports
 coverage/
 
 # Homebrew Formula

@@ -1,15 +1,17 @@
 {
   "name": "@mcp-cli-manager/server",
   "version": "1.0.0",
-  "description": "Server functionality for MCP CLI Manager",
+  "private": true,
+  "description": "WebSocket server for MCP CLI Manager",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "vitest",
+    "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
     "clean": "rimraf dist"
   },
   "dependencies": {
@@ -18,12 +20,12 @@
     "ws": "^8.16.0"
   },
   "devDependencies": {
+    "@mcp-cli-manager/config": "workspace:*",
     "@types/node": "^20.11.19",
     "@types/ws": "^8.5.10",
-    "typescript": "^5.3.3",
-    "vitest": "^1.2.2",
     "@vitest/coverage-v8": "^1.2.2",
-    "eslint": "^8.56.0",
-    "rimraf": "^5.0.5"
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2"
   }
-} 
+}

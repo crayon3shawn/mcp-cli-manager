@@ -1,4 +1,6 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Base",
   "compilerOptions": {
     "target": "ES2020",
     "module": "NodeNext",
@@ -8,19 +10,12 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "types": ["node", "vitest"],
     "allowJs": true,
     "checkJs": true,
-    "lib": ["ES2022"],
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
+    "lib": ["ES2022", "DOM"],
     "declaration": true,
     "sourceMap": true,
     "composite": true
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts"
-  ]
+  "exclude": ["node_modules", "dist"]
 } 

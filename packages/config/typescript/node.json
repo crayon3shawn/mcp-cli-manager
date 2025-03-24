@@ -1,6 +1,9 @@
 {
-  "extends": "@mcp-cli-manager/config/typescript/node.json",
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Node",
+  "extends": "./base.json",
   "compilerOptions": {
+    "types": ["node"],
     "outDir": "./dist",
     "rootDir": "./src"
   },

@@ -1,0 +1,1 @@
+module.exports = require('@mcp-cli-manager/config/prettier'); 

@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "@mcp-cli-manager/config/typescript/node.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src"

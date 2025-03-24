@@ -342,70 +342,16 @@
 
 ## 2024-03-26
 
-### pnpm 工作空間設置
-1. 創建了新的目錄結構：
-   ```
-   mcp-cli-manager/
-   ├── packages/
-   │   ├── core/           # 核心功能
-   │   ├── cli/            # CLI 工具
-   │   ├── server/         # 伺服器相關
-   │   └── shared/         # 共享工具和類型
-   ```
+### 命令更新
+1. 將 `start` 命令改為 `run`，更符合 Minecraft 服務器的慣例
+2. 添加了 `list` 命令，用於列出所有已安裝的服務器
+3. 更新了命令的幫助信息，確保所有命令都在幫助中顯示
 
-2. 添加了 pnpm-workspace.yaml 配置：
-   ```yaml
-   packages:
-     - 'packages/*'
-   ```
+### 待辦事項
+1. 修復 CLI 中的類型錯誤：
+   - `runServer` 未導出
+   - `ServerConfig` 類型中缺少 `version` 屬性
 
 ### 下一步計劃
-1. [ ] 移動現有代碼到對應的包中
-   - [ ] 將核心功能移至 core 包
-   - [ ] 將 CLI 相關代碼移至 cli 包
-   - [ ] 將伺服器相關代碼移至 server 包
-   - [ ] 將共享工具和類型移至 shared 包
-
-2. [ ] 更新 package.json 文件
-   - [ ] 為每個包創建獨立的 package.json
-   - [ ] 設置正確的依賴關係
-   - [ ] 配置構建和測試腳本
-
-3. [ ] 配置開發工具
-   - [ ] 更新 VS Code 設置
-   - [ ] 配置 TypeScript 路徑
-   - [ ] 設置 ESLint 和 Prettier
-
-4. [ ] 更新 CI/CD 配置
-   - [ ] 修改 GitHub Actions 工作流程
-   - [ ] 更新構建和測試腳本
-   - [ ] 配置版本發布流程
-
-### 重構進度
-1. [x] 創建了新的目錄結構
-2. [x] 添加了 pnpm-workspace.yaml 配置
-3. [x] 創建了各個包的 package.json
-4. [x] 創建了各個包的 tsconfig.json
-5. [x] 移動了共享類型和工具到 shared 包
-6. [x] 移動了核心功能到 core 包
-7. [x] 創建了 server 包的基本結構
-8. [x] 創建了 cli 包的基本結構
-
-### 待解決問題
-1. [ ] 修復 linter 錯誤
-   - [ ] 修復 core 包中的 getServerStatus 導出衝突
-   - [ ] 修復 server 包中的模組導入錯誤
-   - [ ] 修復 cli 包中的模組導入錯誤
-
-2. [ ] 移動測試文件
-   - [ ] 將測試文件移動到對應的包中
-   - [ ] 更新測試配置
-
-3. [ ] 更新構建配置
-   - [ ] 配置 TypeScript 構建
-   - [ ] 配置測試環境
-   - [ ] 配置 linting
-
-4. [ ] 更新 CI/CD
-   - [ ] 更新 GitHub Actions 工作流程
-   - [ ] 配置版本發布流程 
+1. 修復類型錯誤
+2. 實現實際的服務器管理功能 

@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { serverTypeSchema, serverStatusSchema, connectionSchema, serverInfoSchema } from './schemas.ts';
+import { serverTypeSchema, serverStatusSchema, connectionSchema, serverInfoSchema } from './schemas';
 
 // Base Types
 export type ServerType = z.infer<typeof serverTypeSchema>;

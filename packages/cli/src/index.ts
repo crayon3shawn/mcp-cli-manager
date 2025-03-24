@@ -1,29 +1,45 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { installServer, uninstallServer } from '@mcp-cli-manager/core';
-import { startServer, stopServer, getServerStatus } from '@mcp-cli-manager/core';
-import { searchServers } from '@mcp-cli-manager/core';
-import { ora } from 'ora';
+import ora from 'ora';
+import {
+  installServer,
+  uninstallServer,
+  runServer,
+  stopServer,
+  getServerStatus,
+  searchServers,
+  listServers,
+  type ServerConfig,
+} from '@mcp-cli-manager/core';
 
 const program = new Command();
 
 program
   .name('mcp-cli-manager')
-  .description('CLI tool for managing MCP servers')
-  .version('1.1.7');
+  .description('CLI tool for managing Minecraft server instances')
+  .version('1.0.0');
 
 program
   .command('install')
   .description('Install a new server')
-  .argument('<name>', 'Server name')
+  .argument('<n>', 'Server name')
   .action(async (name) => {
     const spinner = ora('Installing server...').start();
     try {
-      await installServer(name);
+      const config: ServerConfig = {
+        name,
+        type: 'minecraft',
+        host: 'localhost',
+        port: 25565,
+        username: 'admin',
+        password: 'admin'
+      };
+      await installServer(config);
       spinner.succeed('Server installed successfully');
     } catch (error) {
       spinner.fail('Failed to install server');
+      console.error(error);
       process.exit(1);
     }
   });
@@ -31,29 +47,47 @@ program
 program
   .command('uninstall')
   .description('Uninstall a server')
-  .argument('<name>', 'Server name')
+  .argument('<n>', 'Server name')
   .action(async (name) => {
     const spinner = ora('Uninstalling server...').start();
     try {
-      await uninstallServer(name);
+      const config: ServerConfig = {
+        name,
+        type: 'minecraft',
+        host: 'localhost',
+        port: 25565,
+        username: 'admin',
+        password: 'admin'
+      };
+      await uninstallServer(config);
       spinner.succeed('Server uninstalled successfully');
     } catch (error) {
       spinner.fail('Failed to uninstall server');
+      console.error(error);
       process.exit(1);
     }
   });
 
 program
-  .command('start')
-  .description('Start a server')
-  .argument('<name>', 'Server name')
+  .command('run')
+  .description('Run a server')
+  .argument('<n>', 'Server name')
   .action(async (name) => {
-    const spinner = ora('Starting server...').start();
+    const spinner = ora('Running server...').start();
     try {
-      await startServer(name);
-      spinner.succeed('Server started successfully');
+      const config: ServerConfig = {
+        name,
+        type: 'minecraft',
+        host: 'localhost',
+        port: 25565,
+        username: 'admin',
+        password: 'admin'
+      };
+      await runServer(config);
+      spinner.succeed('Server running successfully');
     } catch (error) {
-      spinner.fail('Failed to start server');
+      spinner.fail('Failed to run server');
+      console.error(error);
       process.exit(1);
     }
   });
@@ -61,14 +95,23 @@ program
 program
   .command('stop')
   .description('Stop a server')
-  .argument('<name>', 'Server name')
+  .argument('<n>', 'Server name')
   .action(async (name) => {
     const spinner = ora('Stopping server...').start();
     try {
-      await stopServer(name);
+      const config: ServerConfig = {
+        name,
+        type: 'minecraft',
+        host: 'localhost',
+        port: 25565,
+        username: 'admin',
+        password: 'admin'
+      };
+      await stopServer(config);
       spinner.succeed('Server stopped successfully');
     } catch (error) {
       spinner.fail('Failed to stop server');
+      console.error(error);
       process.exit(1);
     }
   });
@@ -76,30 +119,60 @@ program
 program
   .command('status')
   .description('Check server status')
-  .argument('<name>', 'Server name')
+  .argument('<n>', 'Server name')
   .action(async (name) => {
     const spinner = ora('Checking server status...').start();
     try {
-      const status = await getServerStatus(name);
+      const config: ServerConfig = {
+        name,
+        type: 'minecraft',
+        host: 'localhost',
+        port: 25565,
+        username: 'admin',
+        password: 'admin'
+      };
+      const status = await getServerStatus(config);
       spinner.succeed(`Server status: ${status}`);
     } catch (error) {
       spinner.fail('Failed to check server status');
+      console.error(error);
       process.exit(1);
     }
   });
 
 program
   .command('search')
-  .description('Search for available servers')
+  .description('Search for servers')
   .argument('<query>', 'Search query')
   .action(async (query) => {
-    const spinner = ora('Searching for servers...').start();
+    const spinner = ora('Searching servers...').start();
     try {
-      const results = await searchServers(query);
+      const servers = await searchServers(query);
       spinner.succeed('Search completed');
-      console.log(results);
+      console.log(servers);
     } catch (error) {
-      spinner.fail('Failed to search for servers');
+      spinner.fail('Failed to search servers');
+      console.error(error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('list')
+  .description('List all installed servers')
+  .action(async () => {
+    const spinner = ora('Listing servers...').start();
+    try {
+      const servers = await listServers();
+      spinner.succeed('Servers listed successfully');
+      if (servers.length === 0) {
+        console.log('No servers installed');
+        return;
+      }
+      console.table(servers);
+    } catch (error) {
+      spinner.fail('Failed to list servers');
+      console.error(error);
       process.exit(1);
     }
   });

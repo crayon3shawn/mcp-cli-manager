@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { ServerTypeLiterals, ServerStatusLiterals, ConnectionTypeLiterals, type WindsurfConfig, type ClineConfig } from './types.ts';
+import { ServerTypeLiterals, ServerStatusLiterals, ConnectionTypeLiterals } from './index';
 
 // Server Type Schema
 export const serverTypeSchema = z.enum([
@@ -32,14 +32,14 @@ export const windsurfConfigSchema = z.object({
   port: z.number(),
   host: z.string(),
   options: z.record(z.unknown()).optional()
-}) satisfies z.ZodType<WindsurfConfig>;
+});
 
 // Cline Configuration Schema
 export const clineConfigSchema = z.object({
   port: z.number(),
   host: z.string(),
   options: z.record(z.unknown()).optional()
-}) satisfies z.ZodType<ClineConfig>;
+});
 
 // Stdio Connection Schema
 export const stdioConnectionSchema = z.object({
