@@ -1,10 +1,10 @@
 # MCP CLI Manager
 
-A command-line tool for managing Minecraft servers, with support for various server types and connection methods.
+A command-line tool for managing Model Context Protocol (MCP) servers, with support for various server types and connection methods.
 
 ## Features
 
-- Manage multiple Minecraft servers
+- Manage multiple MCP servers
 - Support for different server types:
   - Windsurf
   - Cline
@@ -118,7 +118,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - Thanks to all contributors who have helped shape this project
-- Special thanks to the Minecraft server community for their feedback and suggestions
+- Special thanks to the MCP community for their feedback and suggestions
 
 [English](#english) | [中文](#中文)
 
