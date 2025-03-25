@@ -235,6 +235,19 @@
 
 ## 2024-03-25
 
+### 清理專案文件
+- 更新 .gitignore 配置，移除不必要的文件追蹤
+- 移除 package-lock.json（使用 pnpm 作為包管理器）
+- 移除 pnpm-lock 2.yaml（備份文件）
+- 移除 cli/ 目錄（非專案文件）
+- 移除 homebrew-tap/ 目錄（獨立倉庫）
+
+### 發布流程優化
+- 修復 GitHub Actions 中 pnpm 安裝問題
+- 將 pnpm/action-setup 替換為 npm install -g pnpm@8
+- 統一版本號為 1.1.1
+- 刪除未成功發布的 v1.1.0 和 v1.1.7 tag
+
 ### Vitest 遷移計劃
 
 1. 移除 Jest 相關依賴

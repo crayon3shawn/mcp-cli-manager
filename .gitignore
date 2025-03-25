@@ -125,4 +125,11 @@ yarn.lock
 coverage/
 
 # Homebrew Formula
-Formula/ 
+Formula/
+
+# CLI directory
+cli/
+
+# Additional entries from the code block
+homebrew-tap/
+pnpm-lock 2.yaml 
