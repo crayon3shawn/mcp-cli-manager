@@ -237,10 +237,11 @@
 
 ### 清理專案文件
 - 更新 .gitignore 配置，移除不必要的文件追蹤
-- 移除 package-lock.json（使用 pnpm 作為包管理器）
-- 移除 pnpm-lock 2.yaml（備份文件）
-- 移除 cli/ 目錄（非專案文件）
-- 移除 homebrew-tap/ 目錄（獨立倉庫）
+- 實際刪除了以下文件：
+  - cli/ 目錄（非專案文件）
+  - homebrew-tap/ 目錄（獨立倉庫）
+  - pnpm-lock 2.yaml（備份文件）
+- 從 git 中移除這些文件的追蹤
 
 ### 發布流程優化
 - 修復 GitHub Actions 中 pnpm 安裝問題
