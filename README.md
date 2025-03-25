@@ -1,12 +1,124 @@
 # MCP CLI Manager
-不熟套件開發與發布的流程 如果照成困惱 請見諒 
-目前安裝應該會有不少bug 積極排解中 
-尤其是配置的部分 
-但啟動跟列出應該沒什麼問題
 
-之後會更新成TypeScript 
-也會改善指令 讓使用者更好記與操作
--- 
+A command-line tool for managing Minecraft servers, with support for various server types and connection methods.
+
+## Features
+
+- Manage multiple Minecraft servers
+- Support for different server types:
+  - Windsurf
+  - Cline
+  - Custom servers
+- Easy server installation and management
+- Status monitoring and control
+- TypeScript support with full type safety
+
+## Installation
+
+### Using Homebrew
+
+```bash
+brew tap crayon3shawn/homebrew-tap
+brew install mcp-cli-manager
+```
+
+### Using npm
+
+```bash
+npm install -g mcp-cli-manager
+```
+
+## Usage
+
+```bash
+# List all installed servers
+mcp-cli-manager list
+
+# Install a new server
+mcp-cli-manager install <server-name>
+
+# Start a server
+mcp-cli-manager run <server-name>
+
+# Stop a server
+mcp-cli-manager stop <server-name>
+
+# Check server status
+mcp-cli-manager status <server-name>
+```
+
+## Development
+
+This project uses pnpm as the package manager and is structured as a monorepo:
+
+```
+mcp-cli-manager/
+├── packages/
+│   ├── core/           # Core functionality
+│   ├── cli/            # CLI tool
+│   ├── server/         # Server-related code
+│   ├── config/         # Configuration management
+│   └── shared/         # Shared utilities and types
+├── pnpm-workspace.yaml
+└── package.json
+```
+
+### Prerequisites
+
+- Node.js 20.x
+- pnpm 8.x
+- Git
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/crayon3shawn/mcp-cli-manager.git
+   cd mcp-cli-manager
+   ```
+
+2. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+
+3. Build the project:
+   ```bash
+   pnpm build
+   ```
+
+### Development Commands
+
+```bash
+# Run tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+
+# Lint code
+pnpm lint
+
+# Format code
+pnpm format
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Thanks to all contributors who have helped shape this project
+- Special thanks to the Minecraft server community for their feedback and suggestions
 
 [English](#english) | [中文](#中文)
 
