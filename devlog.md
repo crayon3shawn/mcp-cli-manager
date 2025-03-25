@@ -241,6 +241,7 @@
   - cli/ 目錄（非專案文件）
   - homebrew-tap/ 目錄（獨立倉庫）
   - pnpm-lock 2.yaml（備份文件）
+  - package-lock.json（使用 pnpm 作為包管理器）
 - 從 git 中移除這些文件的追蹤
 
 ### 發布流程優化
