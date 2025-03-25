@@ -6,8 +6,8 @@ A command-line tool for managing Model Context Protocol (MCP) servers, with supp
 
 - Manage multiple MCP servers
 - Support for different server types:
-  - Windsurf
-  - Cline
+  - Cursor
+  - Claude
   - Custom servers
 - Easy server installation and management
 - Status monitoring and control

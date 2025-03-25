@@ -193,7 +193,7 @@
    - 確保了型別安全性
 
 ### 待辦事項
-1. [x] 考慮新增 Windsurf 和 Cline Client 配置支援
+1. [x] 考慮新增 Cursor 和 Claude 配置支援
    - 需要修改 `ServerType` 以包含新的類型
    - 擴展 `ServerInfo` 類型以支援新的配置選項
    - 更新 Zod schema 以驗證新的配置格式
@@ -210,7 +210,7 @@
    - 更新開發指南
 
 ### 下一步計劃
-1. [ ] 開始實現 Windsurf 和 Cline Client 的配置支援
+1. [ ] 開始實現 Cursor 和 Claude Client 的配置支援
    - 定義新的配置結構
    - 實現配置驗證
    - 添加相應的測試用例
@@ -250,110 +250,10 @@
 - 統一版本號為 1.1.1
 - 刪除未成功發布的 v1.1.0 和 v1.1.7 tag
 
-### Vitest 遷移計劃
-
-1. 移除 Jest 相關依賴
-   - 移除 `jest` 和 `@types/jest`
-   - 移除 `jest.config.js`
-   - 移除 Jest 相關的類型定義文件
-
-2. 安裝 Vitest 相關依賴
-   ```bash
-   pnpm add -D vitest @vitest/coverage-v8 @testing-library/jest-dom
-   ```
-
-3. 配置 Vitest
-   - 創建 `vitest.config.ts`
-   - 配置 TypeScript 支持
-   - 配置代碼覆蓋率報告
-   - 配置測試環境
-
-4. 更新測試文件
-   - 將 `jest` 導入改為 `vitest`
-   - 更新 mock 函數的實現
-   - 更新斷言語法
-   - 更新異步測試的寫法
-
-5. 更新 package.json
-   - 更新測試腳本
-   - 添加覆蓋率報告腳本
-   - 更新相關依賴版本
-
-6. 更新 CI/CD 配置
-   - 更新 GitHub Actions 工作流程
-   - 更新測試和覆蓋率報告的生成
-   - 確保 CI 環境中的 Node.js 版本兼容
-   - 添加 Vitest 的緩存配置
-   - 優化測試執行時間
-
-### 遷移步驟
-1. [x] 備份當前測試文件
-2. [x] 移除 Jest 相關文件
-3. [x] 安裝 Vitest 依賴
-4. [x] 創建 Vitest 配置
-5. [x] 更新測試文件
-6. [ ] 驗證測試結果
-7. [ ] 更新文檔
-8. [ ] 更新 CI/CD 配置
-
-### 預期收益
-1. 更好的 TypeScript 支持
-2. 更快的測試執行速度
-3. 更現代的測試 API
-4. 更好的開發體驗
-5. 更完整的代碼覆蓋率報告
-
-### 注意事項
-- 確保所有測試都能正常運行
-- 保持測試覆蓋率不降低
-- 確保 CI/CD 流程正常
-- 更新相關文檔
-- 確保團隊成員了解新的測試框架
-
-### CI/CD 更新計劃
-1. 更新 GitHub Actions 工作流程
-   ```yaml
-   name: CI
-   on:
-     push:
-       branches: [ main ]
-     pull_request:
-       branches: [ main ]
-
-   jobs:
-     test:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
-         - uses: pnpm/action-setup@v2
-         - uses: actions/setup-node@v4
-           with:
-             node-version: '18'
-             cache: 'pnpm'
-         - name: Install dependencies
-           run: pnpm install
-         - name: Run tests
-           run: pnpm test
-         - name: Run coverage
-           run: pnpm test:coverage
-         - name: Upload coverage
-           uses: codecov/codecov-action@v4
-   ```
-
-2. 優化測試執行
-   - 使用 Vitest 的並行執行功能
-   - 配置測試緩存
-   - 優化測試環境設置
-
-3. 改進覆蓋率報告
-   - 使用 `@vitest/coverage-v8` 生成詳細報告
-   - 配置覆蓋率閾值
-   - 自動上傳覆蓋率報告到 Codecov
-
-4. 性能優化
-   - 使用 Vitest 的智能緩存
-   - 配置測試分組執行
-   - 優化 CI 環境的資源使用
+### 文檔更新
+- 修正 README.md 中的描述，確保正確描述 MCP (Model Context Protocol) 服務器
+- 更新了安裝和使用說明
+- 添加了開發指南
 
 ## 2024-03-26
 
