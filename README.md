@@ -1,3 +1,6 @@
+搶修中 只專案先不要用
+
+
 # MCP CLI Manager
 
 A command-line tool for managing Model Context Protocol (MCP) servers, with support for various server types and connection methods.
