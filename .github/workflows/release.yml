@@ -67,4 +67,46 @@ jobs:
         echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
         pnpm publish -r --no-git-checks
       env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Get SHA256
+      id: sha256
+      run: |
+        curl -sL https://registry.npmjs.org/mcp-cli-manager/-/mcp-cli-manager-1.1.0.tgz | sha256sum | cut -d' ' -f1 > sha256.txt
+        echo "sha256=$(cat sha256.txt)" >> $GITHUB_OUTPUT
+
+    - name: Update Homebrew Formula
+      uses: peter-evans/create-or-update-package@v2
+      with:
+        repository-name: crayon3shawn/homebrew-tap
+        package-name: mcp-cli-manager
+        formula-name: mcp-cli-manager
+        formula: |
+          class McpCliManager < Formula
+            desc "CLI tool for managing Model Context Protocol (MCP) servers"
+            homepage "https://github.com/crayon3shawn/mcp-cli-manager"
+            url "https://registry.npmjs.org/mcp-cli-manager/-/mcp-cli-manager-1.1.0.tgz"
+            sha256 "${{ steps.sha256.outputs.sha256 }}"
+            license "MIT"
+
+            depends_on "node"
+
+            def install
+              system "npm", "install", *Language::Node.std_npm_install_args(libexec)
+              bin.install_symlink Dir["#{libexec}/bin/*"]
+            end
+
+            test do
+              system "#{bin}/mcp", "--version"
+            end
+          end
+        commit-message: "mcp-cli-manager 1.1.0"
+        branch: mcp-cli-manager-1.1.0
+        delete-branch: true
+        title: "mcp-cli-manager 1.1.0"
+        body: |
+          - [x] Have you followed the [guidelines for contributing](https://github.com/Homebrew/homebrew-core/blob/HEAD/CONTRIBUTING.md)?
+          - [x] Have you checked that there aren't other open [pull requests](https://github.com/Homebrew/homebrew-core/pulls) for the same formula update/change?
+          - [x] Have you built your formula locally with `brew install --build-from-source <formula>`, where `<formula>` is the name of the formula you're submitting?
+          - [x] Is your test running fine `brew test <formula>`, where `<formula>` is the name of the formula you're submitting?
+          - [x] Does your build pass `brew audit --new <formula>`, where `<formula>` is the name of the formula you're submitting? 
