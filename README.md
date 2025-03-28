@@ -1,6 +1,21 @@
-目前的專案有問題，先不要使用 
-我可能要4/13之後才能回來修復，不好意思 
+目前的專案有問題，先不要使用
 
+npm上面的版本目前是1.0.8 
+1.0.8 版本問題報告：
+主要問題：
+服務器啟動功能異常
+嘗試啟動服務器時出現錯誤 Failed to start server: Process exited with code 128
+可能與配置文件管理有關
+配置文件管理問題
+雖然可以列出已安裝的服務器
+但配置文件 (~/.config/mcp-cli-manager/config.json) 沒有正確更新
+導致服務器的配置信息無法正確保存
+正常功能：
+mcp search - 搜索功能正常
+mcp list - 列表顯示功能正常
+mcp status - 狀態查看功能正常 
+我可能要4/13之後才能回來修復，不好意思(或是大大要直接push也可以
+---
 # MCP CLI Manager
 
 A command-line tool for managing Model Context Protocol (MCP) servers, with support for various server types and connection methods.
